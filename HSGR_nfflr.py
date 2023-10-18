@@ -93,7 +93,7 @@ def arbitrary_feat(dataset):
 
     return dataset
 
-def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
+def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]], device='cpu'):
     """Dataloader helper to batch graphs cross `samples`.
 
     Forces get collated into a graph batch
@@ -104,7 +104,12 @@ def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
 
     FOR SPG or other categorization
     """
+    if torch.cuda.is_available():
+        device = 'cuda'
+
     graphs, targets = map(list, zip(*samples))
+    for graph in graphs:
+        graph = graph.to(device)
     target_block = torch.stack(targets, 0)
     return dgl.batch(graphs), target_block
 
@@ -122,12 +127,11 @@ def train_model(model,
                 use_arbitrary_feat = False
                 ):
     
+    t_device = torch.device('cuda:0')
+    print(t_device)
+    for i, datapoint in enumerate(dataset):
+        graph, target = dataset.prepare_batch_default(datapoint, device = device)
 
-    for datapoint in dataset:
-        x, y = datapoint
-        x1 = x.to(torch.device(device))
-        y1 = y.to(device)
-        datapoint = (x1, y1)
     print(dataset[0][0].device)
     print(dataset[0][1].get_device())
     for param in model.parameters():
@@ -144,60 +148,70 @@ def train_model(model,
     test_loader = DataLoader(
         dataset,
         batch_size=1,
+        collate_fn=dataset.collate,
         sampler=SubsetRandomSampler(dataset.split["test"]),
         drop_last=True
     )
 
-
     if optimizer == None:
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
 
-    ave_training_MAE_list = []
-    ave_training_loss_list = []
-    ave_test_loss_list = []
-    ave_test_MAE_list = []
+    ave_training_MAE = []
+    ave_training_loss = []
+    ave_test_loss = []
+    ave_test_MAE = []
 
     for epoch in range(epochs):
 
         if use_arbitrary_feat:
             dataset = arbitrary_feat(dataset)
-            
-        training_MAE = []
-        training_loss = []
+
+        #to keep all caluculations on the gpu we need a tensor on the gpu to keep track of the step
+        gpu_step = torch.tensor([1], dtype = torch.long).to(device)
+        ave_loss = torch.tensor([0], dtype = torch.long).to(device)
+        ave_MAE = torch.tensor([0], dtype = torch.long).to(device)
 
         model.train()
         for step, (g, y) in enumerate(tqdm(train_loader)):
+            if step == 1:
+                print(g.device)
             pred = model(g)
             loss = loss_func(pred, y)
+            MAE = torch.sum(torch.abs(pred - y))
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
 
-            training_loss.append(loss.item())
-            training_MAE.append(torch.sum(torch.abs(pred - y)).item())
+            inv_step = 1/gpu_step
+            inv_step_comp = 1 - inv_step
+            ave_loss = ave_loss @ inv_step_comp + loss @ inv_step
+            ave_MAE = ave_MAE @ inv_step_comp + MAE @ inv_step
+            gpu_step += 1
 
-        ave_training_loss = torch.mean(torch.tensor(training_loss)).item()
-        ave_training_MAE = torch.mean(torch.tensor(training_MAE)).item()
-        ave_training_loss_list.append(ave_training_loss)
-        ave_training_MAE_list.append(ave_training_MAE)
+        ave_training_loss.append(ave_loss)
+        ave_training_MAE.append(ave_MAE)
         print(f'Epoch {epoch}-- Train Loss: {ave_training_loss} Train MAE: {ave_training_MAE}')
 
-        test_loss = []
-        test_MAE = []
+
+        gpu_step = torch.tensor([1], dtype = torch.long).to(device)
+       	ave_loss = torch.tensor([0], dtype = torch.long).to(device)
+       	ave_MAE = torch.tensor([0], dtype = torch.long).to(device)
 
         model.eval()
         with torch.no_grad():
             for (g, y) in tqdm(test_loader):
                 pred = model(g)
-                print(pred.shape)
                 loss = loss_func(pred, y)
-                test_loss.append(loss.item())
-                test_MAE.append(torch.sum(torch.abs(pred - y)).item())
+                MAE = torch.sum(torch.abs(pred - y))
 
-        ave_test_loss = torch.mean(torch.tensor(test_loss)).item()
-        ave_test_MAE = torch.mean(torch.tensor(test_MAE)).item()
-        ave_test_loss_list.append(ave_test_loss)
-        ave_test_MAE_list.append(ave_test_MAE)
+                inv_step = 1/gpu_step
+                inv_step_comp = 1 - inv_step
+                ave_loss = ave_loss @ inv_step_comp + loss @ inv_step
+       	        ave_MAE = ave_MAE @ inv_step_comp +	MAE @ inv_step
+       	        gpu_step +=	1
+
+        ave_test_loss_list.append(ave_loss)
+        ave_test_MAE_list.append(ave_MAE)
         print(f'Epoch {epoch}-- Test Loss: {ave_test_loss} Test MAE: {ave_test_MAE}')
 
 
@@ -235,7 +249,7 @@ if __name__ == '__main__':
         transform=transform,
         custom_collate_fn = collate_spg,
         n_train = 0.8,
-        n_val = 0.1
+        n_val = 0.1,
     )
 
     cfg = alignn.ALIGNNConfig(
