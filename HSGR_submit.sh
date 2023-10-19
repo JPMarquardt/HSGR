@@ -1,17 +1,19 @@
 #!/bin/bash
-#!/scratch/jpm9731/.conda/envs/bin/python3.11
+
+
 #SBATCH --job-name=nfflr_train
-#SBATCH --output=outs/nfflr-%j.out
-#SBATCH --error=outs/nfflr-%j.err
-#SBATCH --time=8:00:00
+#SBATCH --output=.gitignore/outs/nfflr-%j.out
+#SBATCH --error=.gitignore/outs/nfflr-%j.err
+#SBATCH --time=12:00:00
 #SBATCH --nodes=1
-#SBATCH --tasks-per-node=32
+#SBATCH --tasks-per-node=2
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=50GB
+#SBATCH --gres=gpu
 
 module purge
-module load anaconda3/2020.07
-source activate /home/jpm9731/.conda/envs/HSGR
-python --version
 
-python /scratch/jpm9731/HSGR/HSGR_nfflr.py
+singularity exec --nv \
+	    --overlay /scratch/jpm9731/HSGR-singularity/my_pytorch.ext3:ro \
+	    /scratch/work/public/singularity/cuda11.6.124-cudnn8.4.0.27-devel-ubuntu20.04.4.sif\
+	    /bin/bash -c "source /ext3/env.sh; nvidia-smi; python HSGR_nfflr.py"

@@ -1,5 +1,5 @@
 from nfflr.data.dataset import AtomsDataset
-from nfflr.nn.transform import PeriodicRadiusGraph
+from nfflr.nn.transform import PeriodicAdaptiveRadiusGraph
 from nfflr.nn.cutoff import XPLOR
 from nfflr.data.atoms import Atoms as NFAtoms
 from nfflr.models.gnn import alignn
@@ -17,6 +17,7 @@ import torch
 import dgl
 import pickle
 import jarvis
+import sys
 
 
 class FilteredAtomsDataset():
@@ -93,7 +94,7 @@ def arbitrary_feat(dataset):
 
     return dataset
 
-def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]], device='cpu'):
+def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
     """Dataloader helper to batch graphs cross `samples`.
 
     Forces get collated into a graph batch
@@ -104,12 +105,8 @@ def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]], device='cpu'):
 
     FOR SPG or other categorization
     """
-    if torch.cuda.is_available():
-        device = 'cuda'
 
     graphs, targets = map(list, zip(*samples))
-    for graph in graphs:
-        graph = graph.to(device)
     target_block = torch.stack(targets, 0)
     return dgl.batch(graphs), target_block
 
@@ -127,34 +124,12 @@ def train_model(model,
                 use_arbitrary_feat = False
                 ):
     
-    t_device = torch.device('cuda:0')
-    print(t_device)
-    for i, datapoint in enumerate(dataset):
-        graph, target = dataset.prepare_batch_default(datapoint, device = device)
-
-    print(dataset[0][0].device)
-    print(dataset[0][1].get_device())
-    for param in model.parameters():
-        param = param.to(device)
-    print(f'Model and dataset sent to {device}')
-
-    train_loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        collate_fn=dataset.collate,
-        sampler=SubsetRandomSampler(dataset.split["train"]),
-        drop_last=True
-    )
-    test_loader = DataLoader(
-        dataset,
-        batch_size=1,
-        collate_fn=dataset.collate,
-        sampler=SubsetRandomSampler(dataset.split["test"]),
-        drop_last=True
-    )
+    t_device = torch.device('cuda')
 
     if optimizer == None:
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
+
+    model = model.to(t_device)
 
     ave_training_MAE = []
     ave_training_loss = []
@@ -166,15 +141,23 @@ def train_model(model,
         if use_arbitrary_feat:
             dataset = arbitrary_feat(dataset)
 
+        train_loader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            collate_fn=dataset.collate,
+            sampler=SubsetRandomSampler(dataset.split["train"]),
+            drop_last=True
+        )
+
         #to keep all caluculations on the gpu we need a tensor on the gpu to keep track of the step
-        gpu_step = torch.tensor([1], dtype = torch.long).to(device)
-        ave_loss = torch.tensor([0], dtype = torch.long).to(device)
-        ave_MAE = torch.tensor([0], dtype = torch.long).to(device)
+        ave_loss = 0
+        ave_MAE = 0
 
         model.train()
         for step, (g, y) in enumerate(tqdm(train_loader)):
-            if step == 1:
-                print(g.device)
+            g = g.to(t_device)
+            y = y.to(t_device)
+
             pred = model(g)
             loss = loss_func(pred, y)
             MAE = torch.sum(torch.abs(pred - y))
@@ -182,37 +165,50 @@ def train_model(model,
             optimizer.step()
             optimizer.zero_grad()
 
-            inv_step = 1/gpu_step
+            inv_step = 1/(step + 1)
             inv_step_comp = 1 - inv_step
-            ave_loss = ave_loss @ inv_step_comp + loss @ inv_step
-            ave_MAE = ave_MAE @ inv_step_comp + MAE @ inv_step
-            gpu_step += 1
+            ave_loss = ave_loss * inv_step_comp + loss.item() * inv_step
+            ave_MAE = ave_MAE * inv_step_comp + MAE.item() * inv_step
+
+            del g, y, loss, MAE, pred
+            torch.cuda.empty_cache()
 
         ave_training_loss.append(ave_loss)
         ave_training_MAE.append(ave_MAE)
-        print(f'Epoch {epoch}-- Train Loss: {ave_training_loss} Train MAE: {ave_training_MAE}')
+        print(f'Epoch {epoch}-- Train Loss: {ave_training_loss[-1]} Train MAE: {ave_training_MAE[-1]}')
 
+        test_loader = DataLoader(
+            dataset,
+            batch_size=batch_size,
+            collate_fn=dataset.collate,
+            sampler=SubsetRandomSampler(dataset.split["test"]),
+            drop_last=True
+        )
 
-        gpu_step = torch.tensor([1], dtype = torch.long).to(device)
-       	ave_loss = torch.tensor([0], dtype = torch.long).to(device)
-       	ave_MAE = torch.tensor([0], dtype = torch.long).to(device)
+       	ave_loss = 0
+       	ave_MAE = 0
 
         model.eval()
         with torch.no_grad():
-            for (g, y) in tqdm(test_loader):
+            for step, (g, y) in enumerate(tqdm(test_loader)):
+                g = g.to(t_device)
+                y = y.to(t_device)
+
                 pred = model(g)
                 loss = loss_func(pred, y)
                 MAE = torch.sum(torch.abs(pred - y))
 
-                inv_step = 1/gpu_step
+                inv_step = 1/(step + 1)
                 inv_step_comp = 1 - inv_step
-                ave_loss = ave_loss @ inv_step_comp + loss @ inv_step
-       	        ave_MAE = ave_MAE @ inv_step_comp +	MAE @ inv_step
-       	        gpu_step +=	1
+                ave_loss = ave_loss * inv_step_comp + loss.item() * inv_step
+       	        ave_MAE = ave_MAE * inv_step_comp +	MAE.item() * inv_step
 
-        ave_test_loss_list.append(ave_loss)
-        ave_test_MAE_list.append(ave_MAE)
-        print(f'Epoch {epoch}-- Test Loss: {ave_test_loss} Test MAE: {ave_test_MAE}')
+                del g, y, loss, MAE, pred
+                torch.cuda.empty_cache()
+
+        ave_test_loss.append(ave_loss)
+        ave_test_MAE.append(ave_MAE)
+        print(f'Epoch {epoch}-- Test Loss: {ave_test_loss[-1]} Test MAE: {ave_test_MAE[-1]}')
 
 
         output_dir = f'{save_path}{model_name}.pkl'
@@ -220,23 +216,23 @@ def train_model(model,
             pickle.dump(model, output_file)
 
         if loss_graph:
-            plt.plot(ave_training_loss_list, label = 'train')
-            plt.plot(ave_test_loss_list, label = 'test')
+            plt.plot(ave_training_loss, label = 'train')
+            plt.plot(ave_test_loss, label = 'test')
             plt.xlabel("training epoch")
             plt.ylabel("loss")
             plt.semilogy()
             plt.savefig(f'{save_path}{model_name}_loss.png')
 
         if MAE_graph:
-            plt.plot(ave_training_MAE_list, label = 'train')
-            plt.plot(ave_test_MAE_list, label = 'test')
+            plt.plot(ave_training_MAE, label = 'train')
+            plt.plot(ave_test_MAE, label = 'test')
             plt.xlabel("training epoch")
             plt.ylabel("loss")
             plt.semilogy()
             plt.savefig(f'{save_path}{model_name}_MAE.png')
 
 if __name__ == '__main__':
-    transform = PeriodicRadiusGraph(cutoff = 8.0)
+    transform = PeriodicAdaptiveRadiusGraph(cutoff = 8.0)
 
     dataset = FilteredAtomsDataset(source = "dft_3d",
                             n_unique_atoms=(True,2),
@@ -254,7 +250,7 @@ if __name__ == '__main__':
 
     cfg = alignn.ALIGNNConfig(
         transform=transform,
-        cutoff = XPLOR(7.5, 8.0),
+        cutoff = XPLOR(7.5, 8),
         alignn_layers=4,
         norm="layernorm",
         atom_features="embedding",
@@ -272,7 +268,7 @@ if __name__ == '__main__':
                 model_name = 'HSGR_M1',
                 save_path = '',
                 epochs = 30,
-                batch_size = 4,
+                batch_size = 2,
                 loss_func = criterion,
                 optimizer = optimizer
                 )
