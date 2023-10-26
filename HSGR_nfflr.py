@@ -251,12 +251,15 @@ if __name__ == '__main__':
         n_val = 0.1,
     )
 
+    featurization = JP_Featurization(n_atoms = 108, n_heads = len(spg))
+    featurization.to(JP_Featurization)
+
     cfg = alignn.ALIGNNConfig(
         transform=transform,
         cutoff = XPLOR(7.5, 8),
         alignn_layers=4,
         norm="layernorm",
-        atom_features=JP_Featurization(n_atoms = 108, n_heads = len(spg)),
+        atom_features=featurization,
         output_features=5,
         classification = True
     )
