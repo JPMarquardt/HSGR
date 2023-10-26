@@ -3,6 +3,7 @@ from nfflr.nn.transform import PeriodicAdaptiveRadiusGraph
 from nfflr.nn.cutoff import XPLOR
 from nfflr.data.atoms import Atoms as NFAtoms
 from nfflr.models.gnn import alignn
+from nfflr.models.utils import JP_Featurization
 from tqdm import tqdm
 from torch.utils.data import DataLoader, SubsetRandomSampler
 from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
@@ -124,7 +125,7 @@ def train_model(model,
                 use_arbitrary_feat = False
                 ):
     
-    t_device = torch.device('cuda')
+    t_device = torch.device(device)
 
     if optimizer == None:
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
@@ -185,8 +186,8 @@ def train_model(model,
             drop_last=True
         )
 
-       	ave_loss = 0
-       	ave_MAE = 0
+        ave_loss = 0
+        ave_MAE = 0
 
         model.eval()
         with torch.no_grad():
@@ -201,7 +202,7 @@ def train_model(model,
                 inv_step = 1/(step + 1)
                 inv_step_comp = 1 - inv_step
                 ave_loss = ave_loss * inv_step_comp + loss.item() * inv_step
-       	        ave_MAE = ave_MAE * inv_step_comp +	MAE.item() * inv_step
+                ave_MAE = ave_MAE * inv_step_comp +	MAE.item() * inv_step
 
                 del g, y, loss, MAE, pred
                 torch.cuda.empty_cache()
@@ -233,10 +234,12 @@ def train_model(model,
 
 if __name__ == '__main__':
     transform = PeriodicAdaptiveRadiusGraph(cutoff = 8.0)
+    n_atoms = 2
+    spg = ('221','220','123','65','225')
 
     dataset = FilteredAtomsDataset(source = "dft_3d",
-                            n_unique_atoms=(True,2),
-                            categorical_filter=([True],['spg_number'],[('221','220','123','65','225')])
+                            n_unique_atoms=(True,n_atoms),
+                            categorical_filter=([True],['spg_number'],[spg])
                             ).df
     
     dataset = AtomsDataset(
@@ -253,7 +256,7 @@ if __name__ == '__main__':
         cutoff = XPLOR(7.5, 8),
         alignn_layers=4,
         norm="layernorm",
-        atom_features="embedding",
+        atom_features=JP_Featurization(n_atoms = 108, n_heads = len(spg)),
         output_features=5,
         classification = True
     )
@@ -267,10 +270,11 @@ if __name__ == '__main__':
                 device = 'cuda',
                 model_name = 'HSGR_M1',
                 save_path = '',
-                epochs = 30,
+                epochs = 100,
                 batch_size = 2,
                 loss_func = criterion,
-                optimizer = optimizer
+                optimizer = optimizer,
+                use_arbitrary_feat=False
                 )
 
 
