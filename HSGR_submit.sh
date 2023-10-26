@@ -2,8 +2,8 @@
 
 
 #SBATCH --job-name=nfflr_train
-#SBATCH --output=.gitignore/outs/nfflr-%j.out
-#SBATCH --error=.gitignore/outs/nfflr-%j.err
+#SBATCH --output=outs/nfflr-%j.out
+#SBATCH --error=outs/nfflr-%j.err
 #SBATCH --time=12:00:00
 #SBATCH --nodes=1
 #SBATCH --tasks-per-node=2
