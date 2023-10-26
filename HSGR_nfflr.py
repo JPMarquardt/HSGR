@@ -236,6 +236,7 @@ if __name__ == '__main__':
     transform = PeriodicAdaptiveRadiusGraph(cutoff = 8.0)
     n_atoms = 2
     spg = ('221','220','123','65','225')
+    device = 'cuda'
 
     dataset = FilteredAtomsDataset(source = "dft_3d",
                             n_unique_atoms=(True,n_atoms),
@@ -252,7 +253,7 @@ if __name__ == '__main__':
     )
 
     featurization = JP_Featurization(n_atoms = 108, n_heads = len(spg))
-    featurization.to(JP_Featurization)
+    featurization.to(device)
 
     cfg = alignn.ALIGNNConfig(
         transform=transform,
@@ -270,7 +271,7 @@ if __name__ == '__main__':
 
     train_model(model = model,
                 dataset = dataset,
-                device = 'cuda',
+                device = device,
                 model_name = 'HSGR_M3',
                 save_path = '',
                 epochs = 100,
