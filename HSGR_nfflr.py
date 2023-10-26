@@ -268,7 +268,7 @@ if __name__ == '__main__':
     train_model(model = model,
                 dataset = dataset,
                 device = 'cuda',
-                model_name = 'HSGR_M1',
+                model_name = 'HSGR_M3',
                 save_path = '',
                 epochs = 100,
                 batch_size = 2,
