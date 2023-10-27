@@ -217,19 +217,23 @@ def train_model(model,
             pickle.dump(model, output_file)
 
         if loss_graph:
+            plt.figure()
             plt.plot(ave_training_loss, label = 'train')
             plt.plot(ave_test_loss, label = 'test')
             plt.xlabel("training epoch")
             plt.ylabel("loss")
             plt.semilogy()
+            plt.legend(loc='upper right')
             plt.savefig(f'{save_path}{model_name}_loss.png')
 
         if MAE_graph:
+            plt.figure()
             plt.plot(ave_training_MAE, label = 'train')
             plt.plot(ave_test_MAE, label = 'test')
             plt.xlabel("training epoch")
             plt.ylabel("loss")
             plt.semilogy()
+            plt.legend(loc='upper right')
             plt.savefig(f'{save_path}{model_name}_MAE.png')
 
 if __name__ == '__main__':
