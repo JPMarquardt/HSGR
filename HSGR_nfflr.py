@@ -273,7 +273,7 @@ if __name__ == '__main__':
                 device = device,
                 model_name = 'HSGR_M4',
                 save_path = 'M4/',
-                epochs = 100,
+                epochs = 300,
                 batch_size = 2,
                 loss_func = criterion,
                 optimizer = optimizer,
