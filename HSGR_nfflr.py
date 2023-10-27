@@ -256,7 +256,7 @@ if __name__ == '__main__':
         n_val = 0.1,
     )
 
-    featurization = {'n_atoms': 2, 'n_heads': len(spg), 'hidden_features': 128}
+    featurization = {'n_atoms': 2, 'n_heads': len(spg), 'hidden_features': 128, 'use_atom_feat': False}
 
     cfg = alignn.ALIGNNConfig(
         transform=transform,
