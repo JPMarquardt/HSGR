@@ -161,7 +161,7 @@ def train_model(model,
 
             pred = model(g)
             loss = loss_func(pred, y)
-            MAE = torch.sum(torch.abs(pred - y))
+            MAE = torch.mean(torch.abs(pred - y))
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -197,7 +197,7 @@ def train_model(model,
 
                 pred = model(g)
                 loss = loss_func(pred, y)
-                MAE = torch.sum(torch.abs(pred - y))
+                MAE = torch.mean(torch.abs(pred - y))
 
                 inv_step = 1/(step + 1)
                 inv_step_comp = 1 - inv_step
@@ -252,8 +252,7 @@ if __name__ == '__main__':
         n_val = 0.1,
     )
 
-    featurization = JP_Featurization(n_atoms = 108, n_heads = len(spg))
-    featurization.to(device)
+    featurization = (2,len(spg))
 
     cfg = alignn.ALIGNNConfig(
         transform=transform,
@@ -272,13 +271,13 @@ if __name__ == '__main__':
     train_model(model = model,
                 dataset = dataset,
                 device = device,
-                model_name = 'HSGR_M3',
-                save_path = '',
+                model_name = 'HSGR_M4',
+                save_path = 'M4/',
                 epochs = 100,
                 batch_size = 2,
                 loss_func = criterion,
                 optimizer = optimizer,
-                use_arbitrary_feat=False
+                use_arbitrary_feat=True
                 )
 
 
