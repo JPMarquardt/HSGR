@@ -265,7 +265,6 @@ if __name__ == '__main__':
     )
 
     model = alignn.ALIGNN(cfg)
-    print(model.parameters())
     criterion = nn.MSELoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
 
