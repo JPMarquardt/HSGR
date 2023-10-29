@@ -256,7 +256,7 @@ if __name__ == '__main__':
         n_val = 0.1,
     )
 
-    featurization = {'n_atoms': 2, 'n_heads': len(spg), 'hidden_features': 128, 'use_atom_feat': False}
+    featurization = {'n_atoms': n_atoms, 'n_heads': len(spg), 'hidden_features': 128, 'use_atom_feat': False}
 
     cfg = alignn.ALIGNNConfig(
         transform=transform,
@@ -270,7 +270,7 @@ if __name__ == '__main__':
 
     model = alignn.ALIGNN(cfg)
     criterion = nn.MSELoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.1)
 
     train_model(model = model,
                 dataset = dataset,
