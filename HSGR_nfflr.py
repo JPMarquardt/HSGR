@@ -278,7 +278,7 @@ if __name__ == '__main__':
                 model_name = 'HSGR_M6',
                 save_path = 'M6/',
                 epochs = 300,
-                batch_size = 2,
+                batch_size = 16,
                 loss_func = criterion,
                 optimizer = optimizer,
                 use_arbitrary_feat=True
