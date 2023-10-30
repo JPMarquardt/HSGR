@@ -156,6 +156,7 @@ def train_model(model,
 
         model.train()
         for step, (g, y) in enumerate(tqdm(train_loader)):
+            print(g)
             g = g.to(t_device)
             y = y.to(t_device)
 
@@ -256,7 +257,7 @@ if __name__ == '__main__':
         n_val = 0.1,
     )
 
-    featurization = {'n_atoms': n_atoms, 'n_heads': len(spg), 'hidden_features': 128, 'use_atom_feat': False}
+    featurization = {'n_atoms': n_atoms, 'n_heads': len(spg), 'hidden_features': 128, 'use_atom_feat': False, 'eps': 1e-3}
 
     cfg = alignn.ALIGNNConfig(
         transform=transform,
