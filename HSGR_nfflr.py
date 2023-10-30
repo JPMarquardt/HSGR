@@ -156,7 +156,6 @@ def train_model(model,
 
         model.train()
         for step, (g, y) in enumerate(tqdm(train_loader)):
-            print(g)
             g = g.to(t_device)
             y = y.to(t_device)
 
