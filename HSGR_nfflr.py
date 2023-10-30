@@ -116,7 +116,7 @@ def train_model(model,
                 epochs,
                 model_name,
                 device = 'cpu',
-                loss_func = nn.MSELoss(),
+                loss_func = nn.MAELoss(),
                 optimizer = None,
                 save_path = '',
                 batch_size = 4,
@@ -161,7 +161,7 @@ def train_model(model,
 
             pred = model(g)
             loss = loss_func(pred, y)
-            MAE = torch.mean(torch.abs(pred - y))
+            MAE = torch.mean(torch.abs(y - torch.which(y == 1, pred, 0)))
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -197,7 +197,7 @@ def train_model(model,
 
                 pred = model(g)
                 loss = loss_func(pred, y)
-                MAE = torch.mean(torch.abs(pred - y))
+                MAE = torch.mean(torch.abs(y - torch.which(y == 1, pred, 0)))
 
                 inv_step = 1/(step + 1)
                 inv_step_comp = 1 - inv_step
@@ -269,8 +269,8 @@ if __name__ == '__main__':
     )
 
     model = alignn.ALIGNN(cfg)
-    criterion = nn.MSELoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4, weight_decay=0.1)
+    criterion = nn.BCELoss()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5, weight_decay=0.1)
 
     train_model(model = model,
                 dataset = dataset,
@@ -278,7 +278,7 @@ if __name__ == '__main__':
                 model_name = 'HSGR_M6',
                 save_path = 'M6/',
                 epochs = 300,
-                batch_size = 16,
+                batch_size = 8,
                 loss_func = criterion,
                 optimizer = optimizer,
                 use_arbitrary_feat=True
