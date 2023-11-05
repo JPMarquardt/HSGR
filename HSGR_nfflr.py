@@ -245,11 +245,12 @@ if __name__ == '__main__':
                             n_unique_atoms=(True,n_atoms),
                             #categorical_filter=([True],['spg_number'],[spg])
                             ).df
-    
+    """
     spg = {}
     for i in dataset['spg_number']:
         spg[i] = True
     print(f'nspg = {len(spg)}')
+    """
 
     dataset = AtomsDataset(
         df = dataset,
@@ -260,7 +261,7 @@ if __name__ == '__main__':
         n_val = 0.1,
     )
 
-    featurization = {'n_atoms': n_atoms, 'n_heads': int(torch.sqrt(torch.tensor(len(spg))).item()), 'hidden_features': 128, 'use_atom_feat': False, 'eps': 1e-3}
+    featurization = {'n_atoms': n_atoms, 'n_heads': len(spg), 'hidden_features': 128, 'use_atom_feat': False, 'eps': 1e-3}
 
     cfg = alignn.ALIGNNConfig(
         transform=transform,
@@ -285,7 +286,7 @@ if __name__ == '__main__':
                 batch_size = 8,
                 loss_func = criterion,
                 optimizer = optimizer,
-                use_arbitrary_feat=False
+                use_arbitrary_feat=True
                 )
 
 
