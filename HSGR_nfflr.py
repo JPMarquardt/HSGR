@@ -264,7 +264,7 @@ if __name__ == '__main__':
         n_val = 0.1,
     )
 
-    featurization = {'n_atoms': n_atoms, 'n_heads': torch.round(torch.sqrt(len(spg))), 'hidden_features': 128, 'use_atom_feat': False, 'eps': 1e-3}
+    featurization = {'n_atoms': n_atoms, 'n_heads': torch.round(torch.sqrt(torch.tensor(len(spg)))).item(), 'hidden_features': 128, 'use_atom_feat': False, 'eps': 1e-3}
 
     cfg = alignn.ALIGNNConfig(
         transform=transform,
