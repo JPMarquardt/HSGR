@@ -116,7 +116,7 @@ def train_model(model,
                 epochs,
                 model_name,
                 device = 'cpu',
-                loss_func = nn.MAELoss(),
+                loss_func = nn.MSELoss(),
                 optimizer = None,
                 save_path = '',
                 batch_size = 4,
@@ -161,9 +161,14 @@ def train_model(model,
 
             pred = model(g)
             loss = loss_func(pred, y)
-            MAE = torch.mean(torch.abs(y - torch.which(y == 1, pred, 0)))
             loss.backward()
-            optimizer.step()
+            for name, param in model.named_parameters():
+                if torch.is_tensor(param.grad):
+                    if torch.isinf(param.grad).any():
+                        break
+                optimizer.step()
+
+            MAE = torch.mean(torch.abs(y - torch.where(y == 1, pred, 0)))
             optimizer.zero_grad()
 
             inv_step = 1/(step + 1)
@@ -171,7 +176,6 @@ def train_model(model,
             ave_loss = ave_loss * inv_step_comp + loss.item() * inv_step
             ave_MAE = ave_MAE * inv_step_comp + MAE.item() * inv_step
 
-            del g, y, loss, MAE, pred
             torch.cuda.empty_cache()
 
         ave_training_loss.append(ave_loss)
@@ -197,14 +201,13 @@ def train_model(model,
 
                 pred = model(g)
                 loss = loss_func(pred, y)
-                MAE = torch.mean(torch.abs(y - torch.which(y == 1, pred, 0)))
+                MAE = torch.mean(torch.abs(y - torch.where(y == 1, pred, 0)))
 
                 inv_step = 1/(step + 1)
                 inv_step_comp = 1 - inv_step
                 ave_loss = ave_loss * inv_step_comp + loss.item() * inv_step
                 ave_MAE = ave_MAE * inv_step_comp +	MAE.item() * inv_step
 
-                del g, y, loss, MAE, pred
                 torch.cuda.empty_cache()
 
         ave_test_loss.append(ave_loss)
@@ -244,9 +247,15 @@ if __name__ == '__main__':
 
     dataset = FilteredAtomsDataset(source = "dft_3d",
                             n_unique_atoms=(True,n_atoms),
-                            categorical_filter=([True],['spg_number'],[spg])
+                            #categorical_filter=([True],['spg_number'],[spg])
                             ).df
     
+    spg = {}
+    for i in dataset['spg_number']:
+        spg[i] = True
+    print(f'nspg = {len(spg)}')
+    
+
     dataset = AtomsDataset(
         df = dataset,
         target = "spg_number",
@@ -264,7 +273,7 @@ if __name__ == '__main__':
         alignn_layers=4,
         norm="layernorm",
         atom_features=featurization,
-        output_features=5,
+        output_features=len(spg),
         classification = True
     )
 
