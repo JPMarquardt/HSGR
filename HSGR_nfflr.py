@@ -162,11 +162,7 @@ def train_model(model,
             pred = model(g)
             loss = loss_func(pred, y)
             loss.backward()
-            for name, param in model.named_parameters():
-                if torch.is_tensor(param.grad):
-                    if torch.isinf(param.grad).any():
-                        break
-                optimizer.step()
+            optimizer.step()
 
             MAE = torch.mean(torch.abs(y - torch.where(y == 1, pred, 0)))
             optimizer.zero_grad()
@@ -289,7 +285,7 @@ if __name__ == '__main__':
                 batch_size = 8,
                 loss_func = criterion,
                 optimizer = optimizer,
-                use_arbitrary_feat=True
+                use_arbitrary_feat=False
                 )
 
 
