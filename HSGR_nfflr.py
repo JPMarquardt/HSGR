@@ -164,7 +164,7 @@ def train_model(model,
             loss.backward()
             optimizer.step()
 
-            MAE = torch.mean(torch.abs(y - torch.where(y == 1, pred, 0)))
+            MAE = torch.sum(torch.abs(y - torch.where(y == 1, pred, 0)))
             optimizer.zero_grad()
 
             inv_step = 1/(step + 1)
@@ -197,7 +197,7 @@ def train_model(model,
 
                 pred = model(g)
                 loss = loss_func(pred, y)
-                MAE = torch.mean(torch.abs(y - torch.where(y == 1, pred, 0)))
+                MAE = torch.sum(torch.abs(y - torch.where(y == 1, pred, 0)))
 
                 inv_step = 1/(step + 1)
                 inv_step_comp = 1 - inv_step
@@ -270,7 +270,8 @@ if __name__ == '__main__':
         norm="layernorm",
         atom_features=featurization,
         output_features=len(spg),
-        classification = True
+        classification = True,
+        debug = True
     )
 
     model = alignn.ALIGNN(cfg)
