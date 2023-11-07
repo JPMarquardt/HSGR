@@ -243,13 +243,13 @@ if __name__ == '__main__':
 
     dataset = FilteredAtomsDataset(source = "dft_3d",
                             n_unique_atoms=(True,n_atoms),
-                            #categorical_filter=([True],['spg_number'],[spg])
+                            categorical_filter=([True],['spg_number'],[spg])
                             ).df
     
-    spg = {}
+    """    spg = {}
     for i in dataset['spg_number']:
         spg[i] = True
-    print(f'nspg = {len(spg)}')
+    print(f'nspg = {len(spg)}')"""
     
 
     dataset = AtomsDataset(
