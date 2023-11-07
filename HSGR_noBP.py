@@ -72,11 +72,11 @@ if __name__ == "__main__":
     train_model(model = model,
                 dataset = dataset,
                 device = device,
-                model_name = 'HSGR_NOBP_M1',
-                save_path = 'NOBP_M1/',
+                model_name = 'HSGR_NOBPAF_M2',
+                save_path = 'NOBPAF_M2/',
                 epochs = 300,
                 batch_size = 8,
                 loss_func = criterion,
                 optimizer = optimizer,
-                use_arbitrary_feat=False
+                use_arbitrary_feat=True
                 )
