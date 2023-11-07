@@ -261,7 +261,7 @@ if __name__ == '__main__':
         n_val = 0.1,
     )
 
-    featurization = {'n_atoms': n_atoms, 'n_heads': int(torch.sqrt(torch.tensor(len(spg))).item()), 'hidden_features': 128, 'use_atom_feat': False, 'eps': 1e-3}
+    featurization = {'n_atoms': n_atoms, 'n_heads': int(torch.sqrt(torch.tensor(len(spg))).item()), 'hidden_features': 128, 'use_atom_feat': True, 'eps': 1e-3}
 
     cfg = alignn.ALIGNNConfig(
         transform=transform,
@@ -276,13 +276,13 @@ if __name__ == '__main__':
 
     model = alignn.ALIGNN(cfg)
     criterion = nn.BCELoss()
-    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5, weight_decay=0.1)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
 
     train_model(model = model,
                 dataset = dataset,
                 device = device,
-                model_name = 'HSGR_M7',
-                save_path = 'M7/',
+                model_name = 'HSGR_M8',
+                save_path = 'M8/',
                 epochs = 300,
                 batch_size = 8,
                 loss_func = criterion,
