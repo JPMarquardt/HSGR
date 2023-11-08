@@ -271,7 +271,7 @@ if __name__ == '__main__':
         atom_features=featurization,
         output_features=len(spg),
         classification = True,
-        debug = False
+        debug = True
     )
 
     model = alignn.ALIGNN(cfg)
