@@ -82,7 +82,7 @@ class FilteredAtomsDataset():
     
 def arbitrary_feat(dataset):
     for datapoint in dataset:
-        graph_node_feat = datapoint[0].ndata['atomic_number']
+        graph_node_feat = datapoint[0][0].ndata['atomic_number']
         unique_atoms = torch.unique(graph_node_feat)
 
         mask_list = []
@@ -107,6 +107,12 @@ def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
     FOR SPG or other categorization
     """
 
+    if isinstance(samples[0][0], tuple):
+        graphs, targets = map(list, zip(*samples))
+        g, lg = map(list, zip(*graphs))
+        target_block = torch.stack(targets, 0)
+        return (dgl.batch(g), dgl.batch(lg)), target_block
+    
     graphs, targets = map(list, zip(*samples))
     target_block = torch.stack(targets, 0)
     return dgl.batch(graphs), target_block
@@ -156,7 +162,13 @@ def train_model(model,
 
         model.train()
         for step, (g, y) in enumerate(tqdm(train_loader)):
-            g = g.to(t_device)
+
+            if isinstance(g, tuple):
+                for graph_part in g:
+                    graph_part = graph_part.to(t_device)
+            else:
+                g = g.to(t_device)
+
             y = y.to(t_device)
 
             pred = model(g)
@@ -192,7 +204,13 @@ def train_model(model,
         model.eval()
         with torch.no_grad():
             for step, (g, y) in enumerate(tqdm(test_loader)):
-                g = g.to(t_device)
+
+                if isinstance(g, tuple):
+                    for graph_part in g:
+                        graph_part = graph_part.to(t_device)
+                else:
+                    g = g.to(t_device)
+
                 y = y.to(t_device)
 
                 pred = model(g)
@@ -241,17 +259,22 @@ if __name__ == '__main__':
     spg = ('221','220','123','65','225')
     device = 'cuda'
 
+    useAllSPG = True
+    if useAllSPG:
+        categorical_filter = None
+    else:
+        categorical_filter = ([True],['spg_number'],[spg])
+
     dataset = FilteredAtomsDataset(source = "dft_3d",
-                            n_unique_atoms=(True,n_atoms),
-                            categorical_filter=([True],['spg_number'],[spg])
+                            n_unique_atoms = (True,n_atoms),
+                            categorical_filter = categorical_filter
                             ).df
     
-    """    spg = {}
+    spg = {}
     for i in dataset['spg_number']:
         spg[i] = True
-    print(f'nspg = {len(spg)}')"""
+    print(f'nspg = {len(spg)}')
     
-
     dataset = AtomsDataset(
         df = dataset,
         target = "spg_number",
@@ -282,7 +305,7 @@ if __name__ == '__main__':
                 dataset = dataset,
                 device = device,
                 model_name = 'HSGR_M9',
-                save_path = 'M9/',
+                save_path = 'Models/M9/',
                 epochs = 300,
                 batch_size = 8,
                 loss_func = criterion,
