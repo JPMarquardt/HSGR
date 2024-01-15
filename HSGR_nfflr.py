@@ -121,7 +121,7 @@ def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
     return dgl.batch(graphs), target_block
 
 
-def run_epoch(model, loader, loss_func, optimizer, scheduler_list, device, epoch, train=True):
+def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True):
     """Runs one epoch of training or evaluation."""
 
     if train:
@@ -150,8 +150,6 @@ def run_epoch(model, loader, loss_func, optimizer, scheduler_list, device, epoch
                 loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
-                for scheduler in scheduler_list:
-                    scheduler.step()
 
             MAE = torch.sum(torch.abs(y - torch.where(y == 1, pred, 0)))
 
