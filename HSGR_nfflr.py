@@ -252,8 +252,8 @@ if __name__ == '__main__':
     n_atoms = 2
     spg = ('221','220','123','65','225')
     device = 'cuda'
-    save_path = 'Models/M9/'
-    model_name = 'HSGR_M9'
+    save_path = 'Models/23-01-15/'
+    model_name = 'HSGR-trial'
 
     useAllSPG = True
     if useAllSPG:
