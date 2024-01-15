@@ -4,6 +4,8 @@ from nfflr.nn.cutoff import XPLOR
 from nfflr.data.atoms import Atoms as NFAtoms
 from nfflr.models.gnn import alignn
 from nfflr.models.utils import JP_Featurization
+from nfflr.nn.transform import CustomPeriodicAdaptiveRadiusGraph
+
 from tqdm import tqdm
 from torch.utils.data import DataLoader, SubsetRandomSampler
 from torchcontrib.optim import SWA
@@ -248,7 +250,7 @@ def train_model(model,
             plt.savefig(f'{save_path}{model_name}_MAE.png')
 
 if __name__ == '__main__':
-    transform = PeriodicAdaptiveRadiusGraph(cutoff = 8.0)
+    transform = CustomPeriodicAdaptiveRadiusGraph(cutoff = 8.0)
     n_atoms = 2
     spg = ('221','220','123','65','225')
     device = 'cuda'
