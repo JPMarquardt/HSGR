@@ -6,6 +6,7 @@ from nfflr.models.gnn import alignn
 from nfflr.models.utils import JP_Featurization
 from tqdm import tqdm
 from torch.utils.data import DataLoader, SubsetRandomSampler
+from torchcontrib.optim import SWA
 from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
 
 import matplotlib.pyplot as plt
@@ -117,6 +118,53 @@ def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
     target_block = torch.stack(targets, 0)
     return dgl.batch(graphs), target_block
 
+
+def run_epoch(model, loader, loss_func, optimizer, scheduler_list, device, epoch, train=True):
+    """Runs one epoch of training or evaluation."""
+
+    if train:
+        model.train()
+        grad = torch.enable_grad()
+        train_or_test = 'Train'
+    else:
+        model.eval()
+        grad = torch.no_grad()
+        train_or_test = 'Test'
+
+    with grad:
+        for step, (g, y) in enumerate(tqdm(loader)):
+
+            if isinstance(g, tuple):
+                for graph_part in g:
+                    graph_part = graph_part.to(device)
+            else:
+                g = g.to(device)
+
+            y = y.to(device)
+
+            pred = model(g)
+            loss = loss_func(pred, y)
+            if train:
+                loss.backward()
+                optimizer.step()
+                optimizer.zero_grad()
+                for scheduler in scheduler_list:
+                    scheduler.step()
+
+            MAE = torch.sum(torch.abs(y - torch.where(y == 1, pred, 0)))
+
+            inv_step = 1/(step + 1)
+            inv_step_comp = 1 - inv_step
+            ave_loss = ave_loss * inv_step_comp + loss.item() * inv_step
+            ave_MAE = ave_MAE * inv_step_comp + MAE.item() * inv_step
+
+            print(f'Epoch {epoch}-- {train_or_test} Loss: {ave_loss} {train_or_test} MAE: {ave_MAE}')
+
+            torch.cuda.empty_cache()
+
+    return ave_loss, ave_MAE
+
+
 def train_model(model,
                 dataset,
                 epochs,
@@ -156,39 +204,10 @@ def train_model(model,
             drop_last=True
         )
 
-        #to keep all caluculations on the gpu we need a tensor on the gpu to keep track of the step
-        ave_loss = 0
-        ave_MAE = 0
-
-        model.train()
-        for step, (g, y) in enumerate(tqdm(train_loader)):
-
-            if isinstance(g, tuple):
-                for graph_part in g:
-                    graph_part = graph_part.to(t_device)
-            else:
-                g = g.to(t_device)
-
-            y = y.to(t_device)
-
-            pred = model(g)
-            loss = loss_func(pred, y)
-            loss.backward()
-            optimizer.step()
-
-            MAE = torch.sum(torch.abs(y - torch.where(y == 1, pred, 0)))
-            optimizer.zero_grad()
-
-            inv_step = 1/(step + 1)
-            inv_step_comp = 1 - inv_step
-            ave_loss = ave_loss * inv_step_comp + loss.item() * inv_step
-            ave_MAE = ave_MAE * inv_step_comp + MAE.item() * inv_step
-
-            torch.cuda.empty_cache()
+        ave_loss, ave_MAE = run_epoch(model, train_loader, loss_func, optimizer, t_device, epoch, train=True)
 
         ave_training_loss.append(ave_loss)
         ave_training_MAE.append(ave_MAE)
-        print(f'Epoch {epoch}-- Train Loss: {ave_training_loss[-1]} Train MAE: {ave_training_MAE[-1]}')
 
         test_loader = DataLoader(
             dataset,
@@ -198,40 +217,15 @@ def train_model(model,
             drop_last=True
         )
 
-        ave_loss = 0
-        ave_MAE = 0
-
-        model.eval()
-        with torch.no_grad():
-            for step, (g, y) in enumerate(tqdm(test_loader)):
-
-                if isinstance(g, tuple):
-                    for graph_part in g:
-                        graph_part = graph_part.to(t_device)
-                else:
-                    g = g.to(t_device)
-
-                y = y.to(t_device)
-
-                pred = model(g)
-                loss = loss_func(pred, y)
-                MAE = torch.sum(torch.abs(y - torch.where(y == 1, pred, 0)))
-
-                inv_step = 1/(step + 1)
-                inv_step_comp = 1 - inv_step
-                ave_loss = ave_loss * inv_step_comp + loss.item() * inv_step
-                ave_MAE = ave_MAE * inv_step_comp +	MAE.item() * inv_step
-
-                torch.cuda.empty_cache()
+        ave_loss, ave_MAE = run_epoch(model, test_loader, loss_func, optimizer, t_device, epoch, train=False)
 
         ave_test_loss.append(ave_loss)
         ave_test_MAE.append(ave_MAE)
-        print(f'Epoch {epoch}-- Test Loss: {ave_test_loss[-1]} Test MAE: {ave_test_MAE[-1]}')
 
-
-        output_dir = f'{save_path}{model_name}.pkl'
-        with open(output_dir, 'wb') as output_file:
-            pickle.dump(model, output_file)
+        if ave_loss < min(ave_test_loss):
+            output_dir = f'{save_path}{model_name}{epoch}.pkl'
+            with open(output_dir, 'wb') as output_file:
+                pickle.dump(model, output_file)
 
         if loss_graph:
             plt.figure()
@@ -258,6 +252,8 @@ if __name__ == '__main__':
     n_atoms = 2
     spg = ('221','220','123','65','225')
     device = 'cuda'
+    save_path = 'Models/M9/'
+    model_name = 'HSGR_M9'
 
     useAllSPG = True
     if useAllSPG:
@@ -297,6 +293,7 @@ if __name__ == '__main__':
         debug = False
     )
 
+    batch_size = 8
     model = alignn.ALIGNN(cfg)
     criterion = nn.BCELoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
@@ -304,13 +301,32 @@ if __name__ == '__main__':
     train_model(model = model,
                 dataset = dataset,
                 device = device,
-                model_name = 'HSGR_M9',
-                save_path = 'Models/M9/',
+                model_name = model_name,
+                save_path = save_path,
                 epochs = 300,
-                batch_size = 8,
+                batch_size = batch_size,
                 loss_func = criterion,
                 optimizer = optimizer,
                 use_arbitrary_feat=True
                 )
 
+    SWA_freq = round(len(dataset.split['train'])/batch_size)
+    optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
+    optimizer_SWA = torchcontrib.optim.SWA(optimizer_cyclicLR, swa_start=2*SWA_freq, swa_freq=SWA_freq)
 
+    train_model(model = model,
+            dataset = dataset,
+            device = device,
+            model_name = model_name,
+            save_path = save_path,
+            epochs = 50,
+            batch_size = batch_size,
+            loss_func = criterion,
+            optimizer = optimizer_SWA,
+            use_arbitrary_feat=True
+            )
+    
+    optimizer_SWA.swap_swa_sgd()
+    output_dir = f'{save_path}{model_name}_final.pkl'
+    with open(output_dir, 'wb') as output_file:
+        pickle.dump(model, output_file)
