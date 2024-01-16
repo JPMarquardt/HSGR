@@ -126,7 +126,7 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True):
 
     ave_MAE = 0
     ave_loss = 0
-    
+
     if train:
         model.train()
         grad = torch.enable_grad()
@@ -160,9 +160,9 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True):
             ave_loss = ave_loss * inv_step_comp + loss.item() * inv_step
             ave_MAE = ave_MAE * inv_step_comp + MAE.item() * inv_step
 
-            print(f'Epoch {epoch}-- {train_or_test} Loss: {ave_loss} {train_or_test} MAE: {ave_MAE}')
-
             torch.cuda.empty_cache()
+            
+    print(f'Epoch {epoch}-- {train_or_test} Loss: {ave_loss} {train_or_test} MAE: {ave_MAE}')
 
     return ave_loss, ave_MAE
 
@@ -225,7 +225,7 @@ def train_model(model,
         ave_test_MAE.append(ave_MAE)
 
         if ave_loss < min(ave_test_loss):
-            output_dir = f'{save_path}{model_name}{epoch}.pkl'
+            output_dir = f'{save_path}{model_name}_{epoch}.pkl'
             with open(output_dir, 'wb') as output_file:
                 pickle.dump(model, output_file)
 
@@ -255,7 +255,7 @@ if __name__ == '__main__':
     spg = ('221','220','123','65','225')
     device = 'cuda'
     save_path = 'Models/23-01-15/'
-    model_name = 'HSGR-trial'
+    model_name = 'HSGR_trial'
 
     useAllSPG = True
     if useAllSPG:
