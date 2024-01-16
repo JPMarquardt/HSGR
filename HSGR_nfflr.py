@@ -161,7 +161,7 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True):
             ave_MAE = ave_MAE * inv_step_comp + MAE.item() * inv_step
 
             torch.cuda.empty_cache()
-            
+
     print(f'Epoch {epoch}-- {train_or_test} Loss: {ave_loss} {train_or_test} MAE: {ave_MAE}')
 
     return ave_loss, ave_MAE
@@ -254,7 +254,7 @@ if __name__ == '__main__':
     n_atoms = 2
     spg = ('221','220','123','65','225')
     device = 'cuda'
-    save_path = 'Models/23-01-15/'
+    save_path = 'Models/23-01-16/'
     model_name = 'HSGR_trial'
 
     useAllSPG = True
