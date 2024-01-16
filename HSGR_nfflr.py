@@ -238,6 +238,7 @@ def train_model(model,
             plt.semilogy()
             plt.legend(loc='upper right')
             plt.savefig(f'{save_path}{model_name}_loss.png')
+            plt.close()
 
         if MAE_graph:
             plt.figure()
@@ -248,6 +249,7 @@ def train_model(model,
             plt.semilogy()
             plt.legend(loc='upper right')
             plt.savefig(f'{save_path}{model_name}_MAE.png')
+            plt.close()
 
 if __name__ == '__main__':
     transform = CustomPeriodicAdaptiveRadiusGraph(cutoff = 8.0)
