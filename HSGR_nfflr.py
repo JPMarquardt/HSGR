@@ -124,6 +124,9 @@ def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
 def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True):
     """Runs one epoch of training or evaluation."""
 
+    ave_MAE = 0
+    ave_loss = 0
+    
     if train:
         model.train()
         grad = torch.enable_grad()
