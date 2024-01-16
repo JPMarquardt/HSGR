@@ -28,8 +28,8 @@ if __name__ == "__main__":
     n_atoms = 2
     spg = ('221','220','123','65','225')
     device = 'cuda'
-    model_name = 'nfflr_control',
-    save_path = 'Models/23-01-16/',
+    model_name = 'nfflr_control'
+    save_path = 'Models/23-01-16/'
     useAllSPG = True
 
     if useAllSPG:
