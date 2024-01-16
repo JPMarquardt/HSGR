@@ -153,7 +153,7 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True):
                 optimizer.step()
                 optimizer.zero_grad()
 
-            MAE = torch.sum(torch.abs(y - torch.where(y == 1, pred, 0)))
+            MAE = torch.sum(torch.abs(y - torch.where(y == 1, pred, 0)))/y.shape[0]
 
             inv_step = 1/(step + 1)
             inv_step_comp = 1 - inv_step
@@ -192,6 +192,7 @@ def train_model(model,
     ave_training_loss = []
     ave_test_loss = []
     ave_test_MAE = []
+    final_average_MAE = []
 
     for epoch in range(epochs):
 
@@ -224,10 +225,12 @@ def train_model(model,
         ave_test_loss.append(ave_loss)
         ave_test_MAE.append(ave_MAE)
 
-        if ave_loss < min(ave_test_loss):
-            output_dir = f'{save_path}{model_name}_{epoch}.pkl'
+        if ave_loss <= min(ave_test_loss):
+            output_dir = f'{save_path}{model_name}.pkl'
             with open(output_dir, 'wb') as output_file:
                 pickle.dump(model, output_file)
+            final_average_MAE.append(ave_MAE)
+            
 
         if loss_graph:
             plt.figure()
@@ -244,6 +247,7 @@ def train_model(model,
             plt.figure()
             plt.plot(ave_training_MAE, label = 'train')
             plt.plot(ave_test_MAE, label = 'test')
+            plt.plot(final_average_MAE, label = 'saved')
             plt.xlabel("training epoch")
             plt.ylabel("loss")
             plt.semilogy()
