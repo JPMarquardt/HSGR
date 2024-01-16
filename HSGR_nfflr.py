@@ -137,7 +137,7 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True):
         for step, (g, y) in enumerate(tqdm(loader)):
 
             if isinstance(g, tuple):
-                g = (graph_part.to(device) for graph_part in g)
+                g = tuple(graph_part.to(device) for graph_part in g)
             else:
                 g = g.to(device)
 
