@@ -247,7 +247,7 @@ def train_model(model,
             plt.figure()
             plt.plot(ave_training_MAE, label = 'train')
             plt.plot(ave_test_MAE, label = 'test')
-            plt.plot(final_average_MAE, label = 'saved')
+            plt.plot(final_average_MAE, 'r.', label = 'saved')
             plt.xlabel("training epoch")
             plt.ylabel("loss")
             plt.semilogy()
@@ -262,8 +262,8 @@ if __name__ == '__main__':
     device = 'cuda'
     save_path = 'Models/23-01-16/'
     model_name = 'HSGR_trial'
-
     useAllSPG = True
+
     if useAllSPG:
         categorical_filter = None
     else:
