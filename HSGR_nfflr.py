@@ -143,6 +143,8 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True):
 
             y = y.to(device)
 
+            print(type(g))
+
             pred = model(g)
             loss = loss_func(pred, y)
             if train:
