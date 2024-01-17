@@ -74,7 +74,7 @@ if __name__ == "__main__":
     )
 
     batch_size = 8
-    with open(f'{save_path}{model_name}.pkl', 'rb') as input_file:
+    with open(f'{save_path}{model_name}.pkl', 'r') as input_file:
         model = torch.load(input_file, map_location=torch.device(device))
     model.eval()
     criterion = nn.BCELoss()
