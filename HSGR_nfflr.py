@@ -193,6 +193,7 @@ def train_model(model,
     ave_test_loss = []
     ave_test_MAE = []
     final_average_MAE = []
+    epoch_saved = []
 
     for epoch in range(epochs):
 
@@ -228,9 +229,9 @@ def train_model(model,
         if ave_loss <= min(ave_test_loss):
             output_dir = f'{save_path}{model_name}.pkl'
             with open(output_dir, 'wb') as output_file:
-                pickle.dump(model, output_file)
+                torch.save(model, output_file)
             final_average_MAE.append(ave_MAE)
-            
+            epoch_saved.append(epoch)
 
         if loss_graph:
             plt.figure()
@@ -247,7 +248,7 @@ def train_model(model,
             plt.figure()
             plt.plot(ave_training_MAE, label = 'train')
             plt.plot(ave_test_MAE, label = 'test')
-            plt.plot(final_average_MAE, 'r.', label = 'saved')
+            plt.plot(epoch_saved, final_average_MAE, 'r.', label = 'saved')
             plt.xlabel("training epoch")
             plt.ylabel("loss")
             plt.semilogy()
@@ -320,7 +321,7 @@ if __name__ == '__main__':
 
     SWA_freq = round(len(dataset.split['train'])/batch_size)
     optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
-    optimizer_SWA = torchcontrib.optim.SWA(optimizer_cyclicLR, swa_start=2*SWA_freq, swa_freq=SWA_freq)
+    optimizer_SWA = SWA(optimizer_cyclicLR, swa_start=2*SWA_freq, swa_freq=SWA_freq)
 
     train_model(model = model,
             dataset = dataset,
@@ -337,4 +338,4 @@ if __name__ == '__main__':
     optimizer_SWA.swap_swa_sgd()
     output_dir = f'{save_path}{model_name}_final.pkl'
     with open(output_dir, 'wb') as output_file:
-        pickle.dump(model, output_file)
+        torch.save(model, output_file)
