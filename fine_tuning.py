@@ -74,8 +74,8 @@ if __name__ == "__main__":
     )
 
     batch_size = 8
-    with open(f'{save_path}{model_name}.pkl', 'r') as input_file:
-        model = torch.load(input_file, map_location=torch.device(device))
+    with open(f'{save_path}{model_name}.pkl', 'rb') as input_file:
+        model = pickle.load(input_file, map_location=torch.device(device))
     model.eval()
     criterion = nn.BCELoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
