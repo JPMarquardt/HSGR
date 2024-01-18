@@ -352,7 +352,8 @@ if __name__ == '__main__':
 
     SWA_freq = round(len(dataset.split['train'])/batch_size)
     optimizer_SWA = SWALR(optimizer, swa_start=2*SWA_freq, swa_freq=SWA_freq)
-    optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer_SWA, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
+    optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
+    schedulers = (optimizer_SWA, optimizer_cyclicLR)
 
     train_model(model = model,
             dataset = dataset,
@@ -362,7 +363,8 @@ if __name__ == '__main__':
             epochs = 50,
             batch_size = batch_size,
             loss_func = criterion,
-            optimizer = optimizer_SWA,
+            optimizer = optimizer,
+            scheduler=schedulers,
             use_arbitrary_feat=True,
             swa = swa_model,
             )
