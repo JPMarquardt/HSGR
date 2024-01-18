@@ -6,9 +6,10 @@ from nfflr.models.gnn import alignn
 from nfflr.models.utils import JP_Featurization
 from nfflr.nn.transform import CustomPeriodicAdaptiveRadiusGraph
 
+from torch.optim.swa_utils import AveragedModel, SWALR
+
 from tqdm import tqdm
 from torch.utils.data import DataLoader, SubsetRandomSampler
-from torchcontrib.optim import SWA
 from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
 
 import matplotlib.pyplot as plt
@@ -121,7 +122,7 @@ def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
     return dgl.batch(graphs), target_block
 
 
-def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True):
+def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True, swa=False):
     """Runs one epoch of training or evaluation."""
 
     ave_MAE = 0
@@ -149,6 +150,8 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True):
             pred = model(g)
             loss = loss_func(pred, y)
             if train:
+                if swa:
+                    swa.update_parameters(model)
                 loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -178,7 +181,8 @@ def train_model(model,
                 batch_size = 4,
                 loss_graph = True,
                 MAE_graph = True,
-                use_arbitrary_feat = False
+                use_arbitrary_feat = False,
+                swa = False
                 ):
     
     t_device = torch.device(device)
@@ -207,8 +211,14 @@ def train_model(model,
             sampler=SubsetRandomSampler(dataset.split["train"]),
             drop_last=True
         )
-
-        ave_loss, ave_MAE = run_epoch(model, train_loader, loss_func, optimizer, t_device, epoch, train=True)
+        ave_loss, ave_MAE = run_epoch(model=model,
+                                      loader=train_loader,
+                                      loss_func=loss_func,
+                                      optimizer=optimizer,
+                                      device=t_device,
+                                      epoch=epoch,
+                                      train=True,
+                                      swa=swa)
 
         ave_training_loss.append(ave_loss)
         ave_training_MAE.append(ave_MAE)
@@ -221,7 +231,14 @@ def train_model(model,
             drop_last=True
         )
 
-        ave_loss, ave_MAE = run_epoch(model, test_loader, loss_func, optimizer, t_device, epoch, train=False)
+        ave_loss, ave_MAE = run_epoch(model=model,
+                                      loader=test_loader,
+                                      loss_func=loss_func,
+                                      optimizer=optimizer, 
+                                      device=t_device,
+                                      epoch=epoch,
+                                      train=False,
+                                      swa=False)
 
         ave_test_loss.append(ave_loss)
         ave_test_MAE.append(ave_MAE)
@@ -319,9 +336,11 @@ if __name__ == '__main__':
                 use_arbitrary_feat=True
                 )
 
+    swa_model = AveragedModel(model)
+
     SWA_freq = round(len(dataset.split['train'])/batch_size)
-    optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
-    optimizer_SWA = SWA(optimizer_cyclicLR, swa_start=2*SWA_freq, swa_freq=SWA_freq)
+    optimizer_SWA = SWALR(optimizer, swa_start=2*SWA_freq, swa_freq=SWA_freq)
+    optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer_SWA, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
 
     train_model(model = model,
             dataset = dataset,
@@ -332,7 +351,8 @@ if __name__ == '__main__':
             batch_size = batch_size,
             loss_func = criterion,
             optimizer = optimizer_SWA,
-            use_arbitrary_feat=True
+            use_arbitrary_feat=True,
+            swa = swa_model,
             )
     
     optimizer_SWA.swap_swa_sgd()

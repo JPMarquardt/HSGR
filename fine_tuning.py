@@ -6,9 +6,11 @@ from nfflr.models.gnn import alignn
 from nfflr.models.utils import JP_Featurization
 from nfflr.nn.transform import CustomPeriodicAdaptiveRadiusGraph
 
+from torch.optim.swa_utils import AveragedModel, SWALR
+from torch.optim.lr_scheduler import CosineAnnealingLR
+
 from tqdm import tqdm
 from torch.utils.data import DataLoader, SubsetRandomSampler
-from torchcontrib.optim import SWA
 from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
 
 import matplotlib.pyplot as plt
@@ -80,9 +82,11 @@ if __name__ == "__main__":
     criterion = nn.BCELoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
     
+    swa_model = AveragedModel(model)
+
     SWA_freq = round(len(dataset.split['train'])/batch_size)
-    optimizer_SWA = SWA(optimizer, swa_start=2*SWA_freq, swa_freq=SWA_freq)
-    #optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer_SWA, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
+    optimizer_SWA = SWALR(optimizer, swa_start=2*SWA_freq, swa_freq=SWA_freq)
+    optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer_SWA, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
 
     train_model(model = model,
             dataset = dataset,
@@ -93,10 +97,11 @@ if __name__ == "__main__":
             batch_size = batch_size,
             loss_func = criterion,
             optimizer = optimizer_SWA,
-            use_arbitrary_feat=True
+            use_arbitrary_feat=True,
+            swa = swa_model,
             )
     
-    optimizer_SWA.swap_swa_sgd()
+    optimizer_cyclicLR.swap_swa_sgd()
     output_dir = f'{save_path}{model_name}_final.pkl'
     with open(output_dir, 'wb') as output_file:
         torch.load(model, output_file)
