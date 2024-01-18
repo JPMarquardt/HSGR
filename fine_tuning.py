@@ -97,7 +97,7 @@ if __name__ == "__main__":
             epochs = 50,
             batch_size = batch_size,
             loss_func = criterion,
-            optimizer = optimizer_SWA,
+            optimizer = optimizer,
             scheduler=schedulers,
             use_arbitrary_feat=True,
             swa = swa_model,
