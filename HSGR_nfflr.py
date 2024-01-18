@@ -122,7 +122,7 @@ def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
     return dgl.batch(graphs), target_block
 
 
-def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True, swa=False):
+def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = None, train=True, swa=False):
     """Runs one epoch of training or evaluation."""
 
     ave_MAE = 0
@@ -150,8 +150,6 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True, sw
             pred = model(g)
             loss = loss_func(pred, y)
             if train:
-                if swa:
-                    swa.update_parameters(model)
                 loss.backward()
                 optimizer.step()
                 optimizer.zero_grad()
@@ -164,6 +162,17 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, train=True, sw
             ave_MAE = ave_MAE * inv_step_comp + MAE.item() * inv_step
 
             torch.cuda.empty_cache()
+
+    if swa:
+        swa_model = swa
+        swa_model.update_parameters(model)
+    
+    if scheduler:
+        if type(scheduler) == tuple:
+            for index in range(len(scheduler)):
+                scheduler[index].step()
+        else:
+            scheduler.step()
 
     print(f'Epoch {epoch}-- {train_or_test} Loss: {ave_loss} {train_or_test} MAE: {ave_MAE}')
 
@@ -181,6 +190,7 @@ def train_model(model,
                 batch_size = 4,
                 loss_graph = True,
                 MAE_graph = True,
+                scheduler = None,
                 use_arbitrary_feat = False,
                 swa = False
                 ):
@@ -217,6 +227,7 @@ def train_model(model,
                                       optimizer=optimizer,
                                       device=t_device,
                                       epoch=epoch,
+                                      scheduler=scheduler,
                                       train=True,
                                       swa=swa)
 
@@ -237,6 +248,7 @@ def train_model(model,
                                       optimizer=optimizer, 
                                       device=t_device,
                                       epoch=epoch,
+                                      scheduler=None,
                                       train=False,
                                       swa=False)
 
