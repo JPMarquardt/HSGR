@@ -92,7 +92,7 @@ if __name__ == "__main__":
     train_model(model = model,
             dataset = dataset,
             device = device,
-            model_name = model_name,
+            model_name = model_name_new,
             save_path = save_path,
             epochs = 50,
             batch_size = batch_size,
