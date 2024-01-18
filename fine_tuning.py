@@ -85,8 +85,8 @@ if __name__ == "__main__":
     swa_model = AveragedModel(model)
 
     SWA_freq = round(len(dataset.split['train'])/batch_size)
-    optimizer_SWA = SWALR(optimizer, swa_lr=1e-4)
-    optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer_SWA, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
+    optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
+    optimizer_SWA = SWALR(optimizer_cyclicLR, swa_lr=1e-4)
     schedulers = (optimizer_SWA, optimizer_cyclicLR)
 
     train_model(model = model,
