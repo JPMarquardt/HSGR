@@ -82,7 +82,7 @@ if __name__ == "__main__":
     
     SWA_freq = round(len(dataset.split['train'])/batch_size)
     optimizer_SWA = SWA(optimizer, swa_start=2*SWA_freq, swa_freq=SWA_freq)
-    optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer_SWA, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
+    #optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer_SWA, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
 
     train_model(model = model,
             dataset = dataset,
@@ -96,7 +96,7 @@ if __name__ == "__main__":
             use_arbitrary_feat=True
             )
     
-    optimizer_cyclicLR.swap_swa_sgd()
+    optimizer_SWA.swap_swa_sgd()
     output_dir = f'{save_path}{model_name}_final.pkl'
     with open(output_dir, 'wb') as output_file:
         torch.load(model, output_file)
