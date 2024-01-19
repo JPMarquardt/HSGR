@@ -33,8 +33,8 @@ if __name__ == "__main__":
     n_atoms = 2
     spg = ('221','220','123','65','225')
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    model_name = 'HSGR_nfflr'
-    model_name_new = 'HSGR_nfflr_SWA'
+    model_name = 'HSGR_trial'
+    model_name_new = 'HSGR_trial_SWA'
     save_path = 'Models/23-01-16/'
     useAllSPG = True
 
