@@ -97,12 +97,12 @@ if __name__ == "__main__":
     optimizer_SWA = SWALR(optimizer, swa_lr=1e-4)
     schedulers = (optimizer_SWA, optimizer_cyclicLR)
 
-    train_model(model = model,
+    train_model(model = best_model,
             dataset = dataset,
             device = device,
             model_name = f'{model_name}_SWA',
             save_path = save_path,
-            epochs = 50,
+            epochs = 100,
             batch_size = batch_size,
             loss_func = criterion,
             optimizer = optimizer,
