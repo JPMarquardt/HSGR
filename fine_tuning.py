@@ -106,4 +106,4 @@ if __name__ == "__main__":
     optimizer_cyclicLR.swap_swa_sgd()
     output_dir = f'{save_path}{model_name}_final.pkl'
     with open(output_dir, 'wb') as output_file:
-        torch.load(model, output_file)
+        torch.save(model, output_file)

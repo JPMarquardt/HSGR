@@ -8,7 +8,7 @@ from nfflr.models.utils import JP_Featurization
 
 from tqdm import tqdm
 from torch.utils.data import DataLoader, SubsetRandomSampler
-from torchcontrib.optim import SWA
+from torch.optim.swa_utils import AveragedModel, SWALR
 from typing import Any, Dict, List, Literal, Tuple, Union, Optional, Callable
 
 import matplotlib.pyplot as plt
@@ -31,7 +31,7 @@ if __name__ == "__main__":
     spg = ('221','220','123','65','225')
     device = 'cuda'
     model_name = 'nfflr_control'
-    save_path = 'Models/23-01-16/'
+    save_path = 'Models/23-01-21/'
     useAllSPG = True
 
     if useAllSPG:
@@ -88,23 +88,29 @@ if __name__ == "__main__":
                 use_arbitrary_feat=True
                 )
     
+    best_model = torch.load(f'{save_path}{model_name}.pkl') 
+    swa_model = AveragedModel(best_model)
+    swa_model.train()
+
     SWA_freq = round(len(dataset.split['train'])/batch_size)
     optimizer_cyclicLR = torch.optim.lr_scheduler.CyclicLR(optimizer, base_lr=1e-4, max_lr=5e-4, step_size_up=SWA_freq, cycle_momentum=False)
-    optimizer_SWA = SWA(optimizer_cyclicLR, swa_start=2*SWA_freq, swa_freq=SWA_freq)
+    optimizer_SWA = SWALR(optimizer, swa_lr=1e-4)
+    schedulers = (optimizer_SWA, optimizer_cyclicLR)
 
     train_model(model = model,
             dataset = dataset,
             device = device,
-            model_name = model_name,
+            model_name = f'{model_name}_SWA',
             save_path = save_path,
             epochs = 50,
             batch_size = batch_size,
             loss_func = criterion,
-            optimizer = optimizer_SWA,
-            use_arbitrary_feat=True
+            optimizer = optimizer,
+            scheduler=schedulers,
+            use_arbitrary_feat=True,
+            swa = swa_model,
             )
     
     optimizer_SWA.swap_swa_sgd()
     output_dir = f'{save_path}{model_name}_final.pkl'
-    with open(output_dir, 'wb') as output_file:
-        pickle.dump(model, output_file)
+    torch.save(model, output_dir)

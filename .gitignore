@@ -1,3 +1,7 @@
 logs
 outs
 **test**
+Models
+*.pyc
+*submit*
+*.sh
