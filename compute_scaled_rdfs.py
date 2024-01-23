@@ -137,54 +137,10 @@ class universeBox():
         plt.legend(loc=0)
         plt.show()
 
-    def train_gnn(self):
 
 
 
-        self.gnn = JPsGNN()
 
-class JPsGNN(nn.Module):
-    def __init__(self):
-        super(JPsGNN, self).__init__()
-
-
-    def forward(self, x):
-        x
-        
-
-
-class kqvAttn(nn.Module):
-    """
-    Key Query Value Attention
-    i2k = input 2 key
-    i2q = input 2 query
-    i2v = input 2 value
-
-    This module takes in g by inputD tensors and outputs g by outputD tensors.
-    g is the number of nodes in your graph.
-    inputD is the number of node features in your input.
-    outputD is the number of node features in your output.
-    """
-    def __init__(self, inputD, outputD, keyQueryEmbeddingD = 128):
-        super(kqvAttn, self).__init__()
-        #initalize key query value
-        self.i2k = nn.Linear(inputD, keyQueryEmbeddingD)
-        self.i2q = nn.Linear(inputD, keyQueryEmbeddingD)
-        self.i2v = nn.Linear(inputD, outputD)
-
-    def forward(self, x):
-        key = self.i2k(x)
-        query = self.i2q(x)
-        value = self.i2v(x)
-
-        attnCoef = torch.matmul(key, torch.transpose(query, 0, 1))
-        attnCoefNorm = nn.functional.normalize(attnCoef, dim = -1)
-        attnCoefSM = nn.Softmax(attnCoefNorm)
-
-        attnSum = torch.matmul(attnCoefSM, value)
-        output = attnSum + value
-
-        return output
 
 
 
