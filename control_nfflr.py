@@ -58,6 +58,10 @@ if __name__ == "__main__":
         n_val = 0.1,
     )
 
+    with open(f'{save_path}{model_name}_split.pkl', 'wb') as f:
+        pickle.dump(dataset.split, f)
+        print(f'Split saved to {save_path}{model_name}_split.pkl')
+
     featurization = 'embedding'
 
     cfg = alignn.ALIGNNConfig(
@@ -85,7 +89,7 @@ if __name__ == "__main__":
                 batch_size = batch_size,
                 loss_func = criterion,
                 optimizer = optimizer,
-                use_arbitrary_feat=True
+                use_arbitrary_feat=False
                 )
     
     best_model = torch.load(f'{save_path}{model_name}.pkl') 
@@ -107,7 +111,7 @@ if __name__ == "__main__":
             loss_func = criterion,
             optimizer = optimizer,
             scheduler=schedulers,
-            use_arbitrary_feat=True,
+            use_arbitrary_feat=False,
             swa = swa_model,
             )
     

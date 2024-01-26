@@ -318,6 +318,10 @@ if __name__ == '__main__':
         n_val = 0.1,
     )
 
+    with open(f'{save_path}{model_name}_split.pkl', 'wb') as f:
+        pickle.dump(dataset.split, f)
+        print(f'Split saved to {save_path}{model_name}_split.pkl')
+
     featurization = {'n_atoms': n_atoms, 'n_heads': int(torch.sqrt(torch.tensor(len(spg))).item()), 'hidden_features': 128, 'eps': 1e-2}
 
     cfg = alignn.ALIGNNConfig(
