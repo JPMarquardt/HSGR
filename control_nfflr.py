@@ -30,7 +30,7 @@ if __name__ == "__main__":
     n_atoms = 2
     spg = ('221','220','123','65','225')
     device = 'cuda'
-    model_name = 'nfflr_control'
+    model_name = 'nfflr_control_unmasked'
     save_path = 'Models/23-01-21/'
     useAllSPG = True
 
