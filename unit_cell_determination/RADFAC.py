@@ -13,6 +13,7 @@ matplotlib.use('Agg')
 import torch
 import torch.nn as nn
 from jarvis.db.figshare import data as jdata
+import tqdm
 
 import MDAnalysis as mda
 from MDAnalysis.transformations import boxdimensions
@@ -26,7 +27,7 @@ Hyperparameters:
 - n_space_bins: number of bins in space
 - kernel: kernel to use for the autocorrelation
     - type: type of kernel
-    - sigma: standard deviation of the kernel
+    - sigma: standard deviation of the kernelana
 - n_angle_max: number of angles to consider in autocorrelation
 - n_radial_max: number of radial distances to consider in autocorrelation
 """
@@ -96,62 +97,35 @@ def RA_autocorrelation(data,
     return 
 
 def autocorrelation(data,
+                    data_uncertainty,
                     atom_types,
                     displacement, 
-                    n_space_bins: int = 100, 
-                    kernel: dict = {'type': 'gaussian', 'sigma': 0.1}):
+                    kernel: str = 'gaussian'):
     """
     Compute the autocorrelation of the data with a displacement
     """
-    bins = apply_kernel(data, atom_types, kernel, n_space_bins)
+    if kernel == 'gaussian':
+        sign_matrix = torch.sign(atom_types[None, :] * atom_types[:, None])
 
-    return torch.mean()
+        sigma0 = data_uncertainty[None, :, :]
+        sigma1 = data_uncertainty[:, None, :]
+        k0 = 1 / (2 * sigma0 ** 2)
+        k1 = 1 / (2 * sigma1 ** 2)
+        x0 = data[None, :, :]
+        x1 = data[:, None, :]
+        d = displacement[None, None, :]
 
+        a = k0 + k1
+        b = 2 * ((k0*x0) + (k0*d) + (k1*x1)) 
+        c = (k0 * (x0*x0 + d*d + 2 * x0*d)) + (k1*x1*x1)
 
-def apply_kernel(data, atom_types, kernel, n_space_bins):
-    """
-    Apply a kernel to the bins
-    """
-    box_max, _ = torch.max(data, dim = 0)
-    box_min, _ = torch.min(data, dim = 0)    
+        #factor out terms without x
+        old_prefactor = 1/(2 * np.pi * sigma0 * sigma1)
+        exponential_prefactor = torch.exp(c - (b**2)/(4*a))
+        new_integral = torch.sqrt(np.pi / a)
+        integral = old_prefactor * exponential_prefactor * new_integral * sign_matrix
 
-    kernel_diameter_bins = ((box_max - box_min) * n_space_bins * kernel['sigma']).int()
-    kernel = compute_kernel(kernel['type'], kernel_diameter_bins)
-
-    actual_n_space_bins = n_space_bins + kernel_diameter_bins
-    bins = torch.zeros(torch.unbind(actual_n_space_bins))
-
-    for atom, atom_type in zip(data, atom_types):
-        #get two corners of kernel box
-        c_0 = torch.floor((atom - box_min) * n_space_bins / (box_max - box_min)).int()
-        c_1 = c_0 + kernel_diameter_bins
-        application_region = bins[c_0[0]:c_1[0], c_0[1]:c_1[1], c_0[2]:c_1[2]]
-        application_region += kernel * atom_type
-        #fix for 2d since this only works for 3d rn
-
-    return bins
-
-#need to incorporate individual atom uncertainties
-def compute_kernel(kernel_type, kernel_diameter_bins):
-    """
-    Compute the kernel
-    """
-    kernel_box = torch.zeros(torch.unbind(kernel_diameter_bins))
-    if kernel_type == 'gaussian':
-        #we are going to use the 99% of the mass of the gaussian (2 sigma)
-        #this means we acutally only get 0.99^3 = 97% of the mass
-        xs = [None, None, None]
-        for i in range(len(kernel_diameter_bins)):
-            x = torch.linspace(-3, 3, kernel_diameter_bins[i])
-            x = torch.exp(-x**2/2)/torch.sqrt(torch.tensor(2*np.pi))
-            xs[i] = x
-        kernel_box = xs[0][:, None, None] * xs[1][None, :, None] * xs[2][None, None, :]
-
-        return kernel_box
-        
-    else:
-        raise NotImplementedError(f'Kernel type {kernel_type} not implemented')
-    
+    return torch.sum(integral)
 
 def find_local_max(DF):
     """
