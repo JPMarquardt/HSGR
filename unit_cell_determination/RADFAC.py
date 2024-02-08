@@ -58,7 +58,7 @@ def RA_autocorrelation(data,
 
     #caluclate RDF
     rdf = torch.zeros(n_r_bins)
-    
+
     for ind, r_lo, r_hi in enumerate(zip(r_bins[:-1], r_bins[1:])):
         mask = (distance_matrix >= r_lo) & (distance_matrix < r_hi)
         rdf[ind] = torch.mean(mask)
@@ -66,7 +66,7 @@ def RA_autocorrelation(data,
     #find the peaks
     RDF_peaks = find_local_max(rdf)
 
-    #atoms x atoms angle matrix from 1, 0, 0
+    #atoms x atoms angle matrices from 1, 0, 0
     tam = theta_angle_matrix(data)
     pam = phi_angle_matrix(data)
 
@@ -127,9 +127,11 @@ def phi_angle_matrix(data):
     x0_xyz = data[None, :, :] - data[:, None, :]
     hypotenuse = torch.linalg.vector_norm(x0_xyz, dim = -1)
 
+    sign_z = torch.sign(x0_xyz[:, :, 2])
+
     cos_phi = adjacent / hypotenuse
 
-    return torch.acos(cos_phi)
+    return torch.acos(cos_phi) * sign_z
 
 
 def autocorrelation(data,
