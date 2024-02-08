@@ -54,17 +54,21 @@ def RA_autocorrelation(data,
     #r_min/max for bins
     r_min = torch.min(distance_matrix[distance_matrix != 0])
     r_max = r_min * r_max_mult
-
     r_bins = torch.linspace(r_min, r_max, n_r_bins+1)
 
-    RDF = torch.zeros(n_r_bins)
     #caluclate RDF
+    rdf = torch.zeros(n_r_bins)
+    
     for ind, r_lo, r_hi in enumerate(zip(r_bins[:-1], r_bins[1:])):
         mask = (distance_matrix >= r_lo) & (distance_matrix < r_hi)
-        RDF[ind] = torch.mean(mask)
+        rdf[ind] = torch.mean(mask)
 
     #find the peaks
-    RDF_peaks = find_local_max(RDF)
+    RDF_peaks = find_local_max(rdf)
+
+    #atoms x atoms angle matrix from 1, 0, 0
+    tam = theta_angle_matrix(data)
+    pam = phi_angle_matrix(data)
 
     #theta and phi bins
     th_min = 0
@@ -76,25 +80,57 @@ def RA_autocorrelation(data,
     phi_bins = torch.linspace(phi_min, phi_max, n_phi_bins+1)
 
     #calculate the ADF
+    adf = torch.zeros((n_theta_bins, n_phi_bins))
+
     for th_ind, th_lo, th_hi in enumerate(zip(th_bins[:-1], th_bins[1:])):
         for phi_ind, phi_lo, phi_hi in enumerate(zip(phi_bins[:-1], phi_bins[1:])):
-            mask = (th_lo <= theta) & (theta < th_hi) & (phi_lo <= phi) & (phi < phi_hi)
-            ADF = torch.mean(mask)
+            theta_mask = (tam >= th_lo) & (tam < th_hi)
+            phi_mask = (pam >= phi_lo) & (pam < phi_hi)
+            adf[th_ind, phi_ind] = theta_mask & phi_mask
 
-    
-    ANG_peaks = find_local_max(ADF)
+    ANG_peaks = find_local_max(adf)
 
     #compute the autocorrelation
-    AC = torch.zeros((RDF_peaks.shape[0], ANG_peaks.shape[0]))
+    auto_corr = torch.zeros((RDF_peaks.shape[0], ANG_peaks.shape[0]))
 
     for r_ind, r in enumerate(RDF_peaks):
         for ang_ind, th_phi in enumerate(ANG_peaks):
             theta, phi = th_phi
             displacement = torch.tensor([r * np.sin(theta) * np.cos(phi), r * np.sin(theta) * np.sin(phi), r * np.cos(theta)])                
 
-            AC[r_ind, ang_ind] = autocorrelation(data, displacement, n_space_bins, kernel)
+            auto_corr[r_ind, ang_ind] = autocorrelation(data, displacement, n_space_bins, kernel)
 
-    return 
+    return
+
+def theta_angle_matrix(data):
+    """
+    atoms x atoms angle matrix: from 1, 0, 0 in the xy plane
+    """ 
+    x0 = data[None, :, :2] - data[:, None, :2]
+    x0_norm = torch.norm(x0, dim = -1)
+
+    x1 = torch.tensor([1, 0])
+    x1 = x1[None, None, :]
+    
+    x0_x1 = torch.sum(x0 * x1, dim = -1)
+    cos_theta = x0_x1 / x0_norm
+
+    return torch.acos(cos_theta)
+
+def phi_angle_matrix(data):
+    """
+    atoms x atoms angle matrix: angle above xy plane
+    """
+    x0_xy = data[None, :, :2] - data[:, None, :2]
+    adjacent = torch.linalg.vector_norm(x0_xy, dim = -1)
+
+    x0_xyz = data[None, :, :] - data[:, None, :]
+    hypotenuse = torch.linalg.vector_norm(x0_xyz, dim = -1)
+
+    cos_phi = adjacent / hypotenuse
+
+    return torch.acos(cos_phi)
+
 
 def autocorrelation(data,
                     data_uncertainty,
