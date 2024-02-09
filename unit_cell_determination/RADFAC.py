@@ -68,9 +68,6 @@ def RA_autocorrelation(data,
         mask = (distance_matrix >= r_lo) & (distance_matrix < r_hi)
         RDF[ind] = mask.sum().div(data.shape[0] * data.shape[1])
 
-    plt.figure()
-    plt.plot(r_bins[:-1], RDF)
-    plt.savefig('test_RDF.png')
     #find the peaks
     RDF_peaks = find_local_max(RDF)
     print(RDF_peaks)
@@ -97,9 +94,6 @@ def RA_autocorrelation(data,
             phi_mask = (pam >= phi_lo) & (pam < phi_hi)
             mask = theta_mask & phi_mask
             adf[th_ind, phi_ind] = mask.sum().div(data.shape[0] * data.shape[1])
-    plt.figure()
-    sns.heatmap(adf)
-    plt.savefig('test_ADF.png')
 
     ANG_peaks = find_local_max(adf)
     print(ANG_peaks)
@@ -224,39 +218,3 @@ def find_local_max(DF):
     
     return peak_ind
 
-if __name__ == "__main__":
-    kernel = 'gaussian'
-    n_space_bins = 100
-    data = torch.tensor([[0, 0, 0], [1, 1, 0.5], [2, 2, 0], [3, 3, 3]])
-    data1 = torch.tensor([[0, 0, 0], [1, 1, 1], [2, 2, 2], [3, 3, 3]])
-    uncertainty = torch.tensor([0.1, 0.1, 0.1, 0.1])
-    displacement = torch.tensor([1, 1, 1])
-    atom_types = torch.tensor([-1, 1, -1, 1])
-    atom_types1 = torch.tensor([1, 1, 1, 1])
-
-    test = autocorrelation(data, uncertainty, atom_types, displacement, kernel)
-    test1 = autocorrelation(data1, uncertainty, atom_types, displacement, kernel)
-    test2 = autocorrelation(data1, uncertainty, atom_types1, displacement, kernel)
-    print(test)
-    print(test1)
-    print(test2)
-
-    test = RA_autocorrelation(data, 4, 100, 40, 40, 100, kernel, uncertainty = uncertainty, atom_types = atom_types)
-    print(test)
-    """
-    parser = argparse.ArgumentParser(description='Compute the autocorrelation of the RDFs')
-    parser.add_argument('--r_max_mult', type=float, default=10, help='Number to multiply the smallest radius by to get maximum radial distance')
-    parser.add_argument('--n_r_bins', type=int, default=100, help='Number of radial bins')
-    parser.add_argument('--n_theta_bins', type=int, default=20, help='Number of angular bins')
-    parser.add_argument('--n_phi_bins', type=int, default=20, help='Number of azimuthal bins')
-    parser.add_argument('--n_space_bins', type=int, default=100, help='Number of bins in space')
-    parser.add_argument('--kernel_type', type=str, default='gaussian', help='Type of kernel')
-    parser.add_argument('--kernel_sigma', type=float, default=0.1, help='Standard deviation of the kernel')
-    parser.add_argument('--n_angle_max', type=int, default=10, help='Number of angles to consider in autocorrelation')
-    parser.add_argument('--n_radial_max', type=int, default=10, help='Number of radial distances to consider in autocorrelation')
-    args = parser.parse_args()
-
-    data = jdata('dft_3d')
-    RA_autocorrelation(data, args.r_max_mult, args.n_r_bins, args.n_theta_bins, args.n_phi_bins)
-    print('Autocorrelation computed')
-    """
