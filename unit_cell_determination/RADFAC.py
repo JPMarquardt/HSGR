@@ -103,12 +103,13 @@ def autocorrelation(data,
                     kernel: str = 'gaussian'):
     """
     Compute the autocorrelation of the data with a displacement
+    Add math explanation below
     """
     if kernel == 'gaussian':
         sign_matrix = torch.sign(atom_types[None, :] * atom_types[:, None])
 
-        sigma0 = data_uncertainty[None, :, :]
-        sigma1 = data_uncertainty[:, None, :]
+        sigma0 = data_uncertainty[None, :, None]
+        sigma1 = data_uncertainty[:, None, None]
         k0 = 1 / (2 * sigma0 ** 2)
         k1 = 1 / (2 * sigma1 ** 2)
         x0 = data[None, :, :]
@@ -121,8 +122,16 @@ def autocorrelation(data,
 
         #factor out terms without x
         old_prefactor = 1/(2 * np.pi * sigma0 * sigma1)
-        exponential_prefactor = torch.exp(c - (b**2)/(4*a))
+        exponent = torch.sum(c - (b**2)/(4*a), dim = -1)
+        exponential_prefactor = torch.exp(-exponent)
         new_integral = torch.sqrt(np.pi / a)
+
+        #squeeze dataset for readout
+        old_prefactor = torch.squeeze(old_prefactor)
+        exponential_prefactor = torch.squeeze(exponential_prefactor)
+        new_integral = torch.squeeze(new_integral)
+
+        #compute the integral
         integral = old_prefactor * exponential_prefactor * new_integral * sign_matrix
 
     return torch.sum(integral)
@@ -161,10 +170,18 @@ if __name__ == "__main__":
     kernel = {'type': 'gaussian', 'sigma': 0.1}
     n_space_bins = 100
     data = torch.tensor([[0, 0, 0], [1, 1, 0.5], [2, 2, 0], [3, 3, 3]])
+    data1 = torch.tensor([[0, 0, 0], [1, 1, 1], [2, 2, 2], [3, 3, 3]])
+    uncertainty = torch.tensor([0.1, 0.1, 0.1, 0.1])
+    displacement = torch.tensor([1, 1, 1])
     atom_types = torch.tensor([-1, 1, -1, 1])
-    space = apply_kernel(data, atom_types, kernel, n_space_bins)
-    sns.heatmap(space[:,:,20])
-    plt.savefig('test.png')
+    atom_types1 = torch.tensor([1, 1, 1, 1])
+
+    test = autocorrelation(data, uncertainty, atom_types, displacement, kernel['type'])
+    test1 = autocorrelation(data1, uncertainty, atom_types, displacement, kernel['type'])
+    test2 = autocorrelation(data1, uncertainty, atom_types1, displacement, kernel['type'])
+    print(test)
+    print(test1)
+    print(test2)
     """
     parser = argparse.ArgumentParser(description='Compute the autocorrelation of the RDFs')
     parser.add_argument('--r_max_mult', type=float, default=10, help='Number to multiply the smallest radius by to get maximum radial distance')
