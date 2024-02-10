@@ -42,7 +42,7 @@ def RA_autocorrelation(data,
                        kernel: str = 'gaussian',
                        **kwargs):
     """
-    Compute the autocorrelation spatial radial x angular function of the RDFs
+    Compute the autocorrelation spatial radial x angular function of the rdfs
     """
     if type(data) == mda.Universe:
         data = torch.mean(torch.from_numpy(data.coord.positions), dim=-1)
@@ -61,27 +61,31 @@ def RA_autocorrelation(data,
     r_max = r_min * r_max_mult
     r_bins = torch.linspace(r_min, r_max, n_r_bins+1)
 
-    #caluclate RDF
+    rdf = torch.zeros(n_r_bins)
+    #caluclate rdf
     for ind, (r_lo, r_hi) in enumerate(zip(r_bins[:-1], r_bins[1:])):
         mask = (distance_matrix >= r_lo) & (distance_matrix < r_hi)
-        RDF[ind] = mask.sum().div(data.shape[0] * data.shape[1])
+        rdf[ind] = mask.sum().div(data.shape[0] * data.shape[1])
 
     #find the peaks
-    RDF_peaks = find_local_max(RDF)
-    print(RDF_peaks)
+    rdf_peaks = find_local_max(rdf)
+    print(rdf_peaks)
 
     #atoms x atoms angle matrices from 1, 0, 0
     tam = theta_angle_matrix(data)
     pam = phi_angle_matrix(data)
 
     #theta and phi bins
-    th_min = 0
-    th_max = np.pi
-    phi_min = 0
-    phi_max = np.pi
 
-    th_bins = torch.linspace(th_min, th_max, n_theta_bins+1)
-    phi_bins = torch.linspace(phi_min, phi_max, n_phi_bins+1)
+    dth = np.pi / n_theta_bins
+    dphi = np.pi / n_phi_bins
+    th_min = 0
+    phi_min = 0
+    th_max = np.pi - dth
+    phi_max = np.pi - dphi
+
+    th_bins = torch.linspace(th_min, th_max, n_theta_bins)
+    phi_bins = torch.linspace(phi_min, phi_max, n_phi_bins)
 
     #calculate the ADF
     adf = torch.zeros((n_theta_bins, n_phi_bins))
@@ -93,14 +97,13 @@ def RA_autocorrelation(data,
             mask = theta_mask & phi_mask
             adf[th_ind, phi_ind] = mask.sum().div(data.shape[0] * data.shape[1])
 
-    ANG_peaks = find_local_max(adf)
-    print(ANG_peaks)
+    adf_peaks = find_local_max(adf)
 
     #compute the autocorrelation
-    auto_corr = torch.zeros((RDF_peaks.shape[0], ANG_peaks.shape[0]))
+    auto_corr = torch.zeros((rdf_peaks.shape[0], adf_peaks.shape[0]))
 
-    for r_ind, r in enumerate(RDF_peaks):
-        for ang_ind, th_phi in enumerate(ANG_peaks):
+    for r_ind, r in enumerate(rdf_peaks):
+        for ang_ind, th_phi in enumerate(adf_peaks):
             theta, phi = th_phi
             displacement = torch.tensor([r * np.sin(theta) * np.cos(phi), r * np.sin(theta) * np.sin(phi), r * np.cos(theta)])                
 
@@ -109,8 +112,8 @@ def RA_autocorrelation(data,
 
 
     _, max_ac_ind = torch.topk(auto_corr, 3)
-    r = max_ac_ind[0] * (r_max - r_min) / n_r_bins + r_min
-    angle = max_ac_ind[1] * (np.pi) / n_theta_bins
+    r = rdf_peaks[max_ac_ind[0]] * (r_max - r_min) / n_r_bins + r_min
+    angle = adf_peaks[max_ac_ind[1]] * (np.pi) / n_theta_bins
 
     return r, angle
 
@@ -189,30 +192,40 @@ def find_local_max(DF):
     """
     Find the peaks in the data
     """
-    if DF.dim() == 1:
-        delta = DF.roll(1) - DF
-        delta_sign = torch.sign(delta)
-        delta_delta_sign = delta_sign.roll(1) - delta_sign
-        peaks = delta_delta_sign == -2 #-2 is the sign of the second derivative
-        peak_ind = peaks.nonzero()
+    peak_matrices = []
+    for i in range(DF.dim()):
+        delta = DF - DF.roll(1, dims=i)
+        delta_sign = delta.sign()
+        delta_delta_sign = delta_sign - delta_sign.roll(1, dims=i)
+        peaks = delta_delta_sign == -2
+        peaks = peaks.roll(-1, dims=i)
+        peak_matrices.append(peaks)
 
-    elif DF.dim() == 2:
-        #this is pretty ugly, should be refactored in future to incorporate nD
-        delta_x = DF - DF.roll(1, dims=0)
-        delta_y = DF - DF.roll(1, dims=1)
-        delta_sign_x = delta_x.sign()
-        delta_sign_y = delta_y.sign()
-        delta_delta_sign_x = delta_sign_x - delta_sign_x.roll(1, dims=0)
-        delta_delta_sign_y = delta_sign_y - delta_sign_y.roll(1, dims=1)
-        x_peaks = delta_delta_sign_x == -2
-        y_peaks = delta_delta_sign_y == -2
-        x_peaks = x_peaks.roll(-1, dims=0)
-        y_peaks = y_peaks.roll(-1, dims=1)
-        peaks = torch.logical_and(x_peaks, y_peaks)
-        peak_ind = peaks.nonzero()
-
-    else:
-        raise ValueError('Distribution function must be 1D or 2D')
+    and_matrix = peak_matrices[0]
+    if len(peak_matrices) > 1:
+        for i in range(len(peak_matrices)-1):
+            peak_matrices = torch.logical_and(and_matrix, peak_matrices[i+1])
+        
+    output = and_matrix.nonzero()
     
-    return peak_ind
+    return output
 
+if __name__ == "__main__":
+    """
+    parser = argparse.ArgumentParser(description='Compute the autocorrelation of the rdfs')
+    parser.add_argument('--r_max_mult', type=float, default=4, help='Number to multiply the smallest radius by to get maximum radial distance')
+    parser.add_argument('--n_r_bins', type=int, default=100, help='Number of radial bins')
+    parser.add_argument('--n_theta_bins', type=int, default=20, help='Number of angular bins')
+    parser.add_argument('--n_phi_bins', type=int, default=20, help='Number of azimuthal bins')
+    parser.add_argument('--n_space_bins', type=int, default=100, help='Number of bins in space')
+    parser.add_argument('--kernel', type=str, default='gaussian', help='Kernel to use for the autocorrelation')
+    args = parser.parse_args()
+    """
+    args = {'r_max_mult': 4, 'n_r_bins': 100, 'n_theta_bins': 20, 'n_phi_bins': 20, 'n_space_bins': 100, 'kernel': 'gaussian'}
+    data = jdata('dft_3d')
+    data = data[0]
+    data = torch.tensor(data['atoms']['coords'])
+    print(data)
+
+    r, angle = RA_autocorrelation(data, uncertainty = torch.ones(data.shape[0]), atom_types = torch.ones(data.shape[0]))
+    print(r, angle)
