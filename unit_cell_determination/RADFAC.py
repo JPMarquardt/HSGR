@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 import argparse
+import datetime
 from scipy.stats import entropy
 
 import matplotlib.pyplot as plt
@@ -12,7 +13,9 @@ matplotlib.use('Agg')
 
 import torch
 import torch.nn as nn
+from sklearn.preprocessing import LabelBinarizer
 from jarvis.db.figshare import data as jdata
+from nfflr.data.dataset import AtomsDataset
 import tqdm
 
 import MDAnalysis as mda
@@ -38,8 +41,8 @@ def RA_autocorrelation(data,
                        n_r_bins: int = 100, 
                        n_theta_bins: int = 20, 
                        n_phi_bins: int = 20, 
-                       n_space_bins: int = 100,
                        kernel: str = 'gaussian',
+                       use_cutoff: bool = False,
                        **kwargs):
     """
     Compute the autocorrelation spatial radial x angular function of the rdfs
@@ -59,118 +62,120 @@ def RA_autocorrelation(data,
     #r_min/max for bins
     r_min = torch.min(distance_matrix[distance_matrix != 0])
     r_max = r_min * r_max_mult
-    r_bins = torch.linspace(r_min, r_max, n_r_bins+1)
-
-    rdf = torch.zeros(n_r_bins)
-    #caluclate rdf
-    for ind, (r_lo, r_hi) in enumerate(zip(r_bins[:-1], r_bins[1:])):
-        mask = (distance_matrix >= r_lo) & (distance_matrix < r_hi)
-        rdf[ind] = mask.sum().div(data.shape[0] * data.shape[1])
-
-    #find the peaks
-    rdf_peaks = find_local_max(rdf)
-    print(rdf_peaks)
-
-    #atoms x atoms angle matrices from 1, 0, 0
-    tam = theta_angle_matrix(data)
-    pam = phi_angle_matrix(data)
+    r_bins = torch.linspace(r_min, r_max, n_r_bins)
 
     #theta and phi bins
 
     dth = np.pi / n_theta_bins
     dphi = np.pi / n_phi_bins
     th_min = 0
-    phi_min = 0
+    phi_min = -np.pi/2
     th_max = np.pi - dth
-    phi_max = np.pi - dphi
+    phi_max = np.pi/2 - dphi
 
     th_bins = torch.linspace(th_min, th_max, n_theta_bins)
     phi_bins = torch.linspace(phi_min, phi_max, n_phi_bins)
 
-    #calculate the ADF
-    adf = torch.zeros((n_theta_bins, n_phi_bins))
+    #cutoff should only be use when the data is very large
+    if use_cutoff:
+        cutoff = r_max
+    else: 
+        cutoff = None
 
-    for th_ind, (th_lo, th_hi) in enumerate(zip(th_bins[:-1], th_bins[1:])):
-        for phi_ind, (phi_lo, phi_hi) in enumerate(zip(phi_bins[:-1], phi_bins[1:])):
-            theta_mask = (tam >= th_lo) & (tam < th_hi)
-            phi_mask = (pam >= phi_lo) & (pam < phi_hi)
-            mask = theta_mask & phi_mask
-            adf[th_ind, phi_ind] = mask.sum().div(data.shape[0] * data.shape[1])
+    auto_corr = torch.zeros((n_r_bins, n_theta_bins, n_phi_bins))
+    for r_ind, r in enumerate(r_bins):
+        for th_ind, theta in enumerate(th_bins):
+            for phi_ind, phi in enumerate(phi_bins):
+                displacement = polar2cart(torch.tensor((r, theta, phi)))
+                auto_corr[r_ind, th_ind, phi_ind] = autocorrelation(data=data, 
+                                                                    data_uncertainty=uncertainty, 
+                                                                    atom_types=atom_types, 
+                                                                    displacement=displacement, 
+                                                                    kernel=kernel, 
+                                                                    cutoff=cutoff)
+                #stop multicounting spins that do nothing
+                if (theta == 0) and phi_ind != 1:
+                    auto_corr[r_ind, th_ind, phi_ind] = 0
 
-    adf_peaks = find_local_max(adf)
+    tot_ind = find_local_max(auto_corr)
+    peak_val = auto_corr[tot_ind[:, 0], tot_ind[:, 1], tot_ind[:, 2]]
+    print(peak_val)
+    _, top3_peak_ind = torch.topk(peak_val, 3)
+    print(_)
+    print(top3_peak_ind)
+    top_3_tot_ind = tot_ind[top3_peak_ind]
+    print(top_3_tot_ind)
 
-    #compute the autocorrelation
-    auto_corr = torch.zeros((rdf_peaks.shape[0], adf_peaks.shape[0]))
-
-    for r_ind, r in enumerate(rdf_peaks):
-        for ang_ind, th_phi in enumerate(adf_peaks):
-            theta, phi = th_phi
-            displacement = torch.tensor([r * np.sin(theta) * np.cos(phi), r * np.sin(theta) * np.sin(phi), r * np.cos(theta)])                
-
-            auto_corr[r_ind, ang_ind] = autocorrelation(data, uncertainty, atom_types, displacement, kernel)
-
-
-
-    _, max_ac_ind = torch.topk(auto_corr, 3)
-    r = rdf_peaks[max_ac_ind[0]] * (r_max - r_min) / n_r_bins + r_min
-    angle = adf_peaks[max_ac_ind[1]] * (np.pi) / n_theta_bins
+    r = r_bins[top_3_tot_ind[:, 0]]
+    angle = torch.stack([th_bins[top_3_tot_ind[:, 1]], phi_bins[top_3_tot_ind[:, 2]]], dim = -1)
+    plt.figure()
+    sns.heatmap(auto_corr[90])
+    plt.savefig('auto_corr_heatmap_far.png')
+    print(auto_corr[90,0])
 
     return r, angle
 
-def theta_angle_matrix(data: torch.tensor):
+def polar2cart(x):
     """
-    atoms x atoms angle matrix: from 1, 0, 0 in the xy plane
-    """ 
-    x0 = data[None, :, :2] - data[:, None, :2]
-    x0_norm = torch.norm(x0, dim = -1)
-
-    x1 = torch.tensor([1, 0])
-    x1 = x1[None, None, :]
-    
-    x0_x1 = torch.sum(x0 * x1, dim = -1)
-    cos_theta = x0_x1 / x0_norm
-
-    return torch.acos(cos_theta)
-
-def phi_angle_matrix(data: torch.tensor):
+    Convert polar to cartesian coordinates
     """
-    atoms x atoms angle matrix: angle above xy plane
+    r = x[0]
+    theta = x[1]
+    phi = x[2]
+    x = r * np.sin(theta) * np.cos(phi)
+    y = r * np.sin(theta) * np.sin(phi)
+    z = r * np.cos(theta)
+    return torch.tensor((x, y, z))
+
+def cart2polar(x):
     """
-    x0_xy = data[None, :, :2] - data[:, None, :2]
-    adjacent = torch.linalg.vector_norm(x0_xy, dim = -1)
-
-    x0_xyz = data[None, :, :] - data[:, None, :]
-    hypotenuse = torch.linalg.vector_norm(x0_xyz, dim = -1)
-
-    sign_z = torch.sign(x0_xyz[:, :, 2])
-
-    cos_phi = adjacent / hypotenuse
-
-    return torch.acos(cos_phi) * sign_z
+    Convert cartesian to polar coordinates
+    """
+    x = x[0]
+    y = x[1]
+    z = x[2]
+    r = np.sqrt(x**2 + y**2 + z**2)
+    theta = np.arccos(z/r)
+    phi = np.arctan2(y, x)
+    return torch.tensor((r, theta, phi))
 
 def autocorrelation(data: torch.tensor,
                     data_uncertainty: torch.tensor,
                     atom_types: torch.tensor,
                     displacement: torch.tensor, 
-                    kernel: str = 'gaussian'):
+                    kernel: str = 'gaussian',
+                    cutoff: float = None):
     """
     Compute the autocorrelation of the data with a displacement
     Add math explanation below
     """
+    sign_matrix = atom_types[None, :] * atom_types[:, None]
+    sign_matrix = torch.sum(sign_matrix, dim = -1)
+    sign_matrix[sign_matrix == 0] = -1
+
+    sigma0 = data_uncertainty[None, :, None]
+    sigma1 = data_uncertainty[:, None, None]
+    k0 = 1 / (2 * sigma0 ** 2)
+    k1 = 1 / (2 * sigma1 ** 2)
+    x0 = data[None, :, :]
+    x1 = data[:, None, :]
+    d = displacement[None, None, :]
+
+    if cutoff is not None:
+        distance_matrix = torch.sqrt(torch.sum((x0 - x1 + d)**2, dim = -1))
+        mask = distance_matrix < cutoff
+        mask = mask[:, :, None]
+        k0 = k0 * mask
+        k1 = k1 * mask
+        x0 = x0 * mask
+        x1 = x1 * mask
+
     if kernel == 'gaussian':
-        sign_matrix = torch.sign(atom_types[None, :] * atom_types[:, None])
-
-        sigma0 = data_uncertainty[None, :, None]
-        sigma1 = data_uncertainty[:, None, None]
-        k0 = 1 / (2 * sigma0 ** 2)
-        k1 = 1 / (2 * sigma1 ** 2)
-        x0 = data[None, :, :]
-        x1 = data[:, None, :]
-        d = displacement[None, None, :]
-
+        #compute the coefficients of the quadratic equation
         a = k0 + k1
-        b = 2 * ((k0*x0) + (k0*d) + (k1*x1)) 
-        c = (k0 * (x0*x0 + d*d + 2 * x0*d)) + (k1*x1*x1)
+        dx = (x0 + d - x1) 
+        b = 2 * k0 * dx
+        c = k0 * dx ** 2
 
         #factor out terms without x
         old_prefactor = 1/(2 * np.pi * sigma0 * sigma1)
@@ -210,6 +215,21 @@ def find_local_max(DF):
     
     return output
 
+def create_supercell(data: torch.tensor, lattice: torch.tensor, n: int):
+    """
+    Create a supercell
+    """
+    n_atoms = data.shape[0]
+    supercell = torch.zeros((data.shape[0] * n**3, data.shape[1]))
+    for i in range(n):
+        for j in range(n):
+            for k in range(n):
+                ind = (i*n**2 + j*n + k) * n_atoms
+                displacement = torch.tensor([i, j, k], dtype=torch.float) @ lattice
+                supercell[ind:ind + n_atoms] = data + displacement[None, :]
+
+    return supercell
+
 if __name__ == "__main__":
     """
     parser = argparse.ArgumentParser(description='Compute the autocorrelation of the rdfs')
@@ -221,11 +241,4 @@ if __name__ == "__main__":
     parser.add_argument('--kernel', type=str, default='gaussian', help='Kernel to use for the autocorrelation')
     args = parser.parse_args()
     """
-    args = {'r_max_mult': 4, 'n_r_bins': 100, 'n_theta_bins': 20, 'n_phi_bins': 20, 'n_space_bins': 100, 'kernel': 'gaussian'}
-    data = jdata('dft_3d')
-    data = data[0]
-    data = torch.tensor(data['atoms']['coords'])
-    print(data)
 
-    r, angle = RA_autocorrelation(data, uncertainty = torch.ones(data.shape[0]), atom_types = torch.ones(data.shape[0]))
-    print(r, angle)
