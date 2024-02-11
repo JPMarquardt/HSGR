@@ -99,19 +99,11 @@ def RA_autocorrelation(data,
 
     tot_ind = find_local_max(auto_corr)
     peak_val = auto_corr[tot_ind[:, 0], tot_ind[:, 1], tot_ind[:, 2]]
-    print(peak_val)
     _, top3_peak_ind = torch.topk(peak_val, 3)
-    print(_)
-    print(top3_peak_ind)
     top_3_tot_ind = tot_ind[top3_peak_ind]
-    print(top_3_tot_ind)
 
     r = r_bins[top_3_tot_ind[:, 0]]
     angle = torch.stack([th_bins[top_3_tot_ind[:, 1]], phi_bins[top_3_tot_ind[:, 2]]], dim = -1)
-    plt.figure()
-    sns.heatmap(auto_corr[90])
-    plt.savefig('auto_corr_heatmap_far.png')
-    print(auto_corr[90,0])
 
     return r, angle
 
