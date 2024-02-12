@@ -100,7 +100,7 @@ def RA_autocorrelation(data,
 
     tot_ind = find_local_max(auto_corr)
     peak_val = auto_corr[tot_ind[:, 0], tot_ind[:, 1], tot_ind[:, 2]]
-    _, top3_peak_ind = torch.topk(peak_val, 3)
+    top3_ac, top3_peak_ind = torch.topk(peak_val, 3)
     top_3_tot_ind = tot_ind[top3_peak_ind]
 
     r = r_bins[top_3_tot_ind[:, 0]]
@@ -112,7 +112,7 @@ def RA_autocorrelation(data,
 
     output = torch.cat((r, theta, phi), dim = -1)
 
-    return output
+    return output, top3_ac
 
 def spherical2cart(x):
     """

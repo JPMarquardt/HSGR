@@ -9,41 +9,56 @@ import matplotlib.pyplot as plt
 import matplotlib
 import seaborn as sns
 #import tkinter
-matplotlib.use('Agg')
 
 import torch
 import torch.nn as nn
-from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import MultiLabelBinarizer
 from jarvis.db.figshare import data as jdata
 from nfflr.data.dataset import AtomsDataset
 import tqdm
 
 import MDAnalysis as mda
 from MDAnalysis.transformations import boxdimensions
-from unit_cell_determination.RADFC import autocorrelation, RA_autocorrelation, create_supercell
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+
+from unit_cell_determination.RADFAC import RA_autocorrelation, autocorrelation, create_supercell, spherical2cart, cart2spherical
+from unit_cell_determination.MLP import *
 if __name__ == '__main__':
-
-    args = {'r_max_mult': 4, 'n_r_bins': 100, 'n_theta_bins': 20, 'n_phi_bins': 20, 'n_space_bins': 100, 'kernel': 'gaussian'}
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     data = AtomsDataset('dft_3d')
-    data_point = data[0][0]
 
-    n = 3
-    coords = torch.tensor(data_point.positions)
-    lattice = torch.tensor(data_point.lattice)
-    coords = coords @ lattice
-    print(coords)
-    coords = create_supercell(coords, lattice, n)
-    types = data_point.numbers
-    ohe = LabelBinarizer()
-    ohe.fit(types)
-    ohe_types = torch.from_numpy(ohe.transform(types)).repeat(n**3, 1)
-    print(ohe_types.shape)
 
-    uncertainty = torch.ones(coords.shape[0])/10
-    r, angle = RA_autocorrelation(coords, uncertainty = uncertainty, atom_types = ohe_types)
-    print(r, angle)
-    print(data_point.lattice)
-    print(autocorrelation(coords, uncertainty, ohe_types, lattice[0], 'gaussian'))
-    print(autocorrelation(coords, uncertainty, ohe_types, lattice[1], 'gaussian'))
-    print(autocorrelation(coords, uncertainty, ohe_types, lattice[2], 'gaussian'))
+    for i in range(len(data)):
+        kwargs = {'r_max_mult': torch.tensor(4.0), 'n_r_bins': 200, 'n_theta_bins': 40, 'n_phi_bins': 40, 'n_space_bins': 100, 'kernel': 'gaussian'}
+        data_point = data[i][0]
+
+        n = 3
+        coords = data_point.positions
+        lattice = data_point.lattice
+        coords = coords @ lattice
+        coords = create_supercell(coords, lattice, n)
+        types = data_point.numbers.long()
+
+        ohe_types = torch.nn.functional.one_hot(types,num_classes=-1)
+        mask = ohe_types.sum(dim=0) > 0
+        ohe_types = ohe_types[:, mask].repeat(n**3, 1)
+        uncertainty = torch.ones(coords.shape[0])/10
+
+        coords = coords.to(device)
+        uncertainty = uncertainty.to(device)
+        ohe_types = ohe_types.to(device)
+
+        spherical = RA_autocorrelation(coords, uncertainty = uncertainty, atom_types = ohe_types, **kwargs)
+        cart = spherical2cart(spherical)
+
+        loss = 0
+        for j in range(3):
+            temp_loss = torch.tensor([0, 0, 0])
+            for k in range(3):
+                temp_loss[k] = torch.mean(torch.abs(lattice[j] - cart[k]))
+                loss += torch.min(temp_loss)
+
+        with open('losses.txt', 'a') as f:
+            f.write(f'{i}: {loss.item()}\n')
