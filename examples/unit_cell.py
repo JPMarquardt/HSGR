@@ -50,15 +50,18 @@ if __name__ == '__main__':
         uncertainty = uncertainty.to(device)
         ohe_types = ohe_types.to(device)
 
-        spherical = RA_autocorrelation(coords, uncertainty = uncertainty, atom_types = ohe_types, **kwargs)
+        spherical, auto_corr = RA_autocorrelation(coords, uncertainty = uncertainty, atom_types = ohe_types, **kwargs)
         cart = spherical2cart(spherical)
 
+        print(f'Cartesian: {cart}')
+        print(f'Lattice: {lattice}')
         loss = 0
         for j in range(3):
-            temp_loss = torch.tensor([0, 0, 0])
-            for k in range(3):
+            temp_loss = torch.tensor([0., 0., 0.])
+            for k in range(6):
                 temp_loss[k] = torch.mean(torch.abs(lattice[j] - cart[k]))
-                loss += torch.min(temp_loss)
+                temp_loss[k+3] = torch.mean(torch.abs(lattice[j] + cart[k]))
+            loss += torch.min(temp_loss)
 
         with open('losses.txt', 'a') as f:
             f.write(f'{i}: {loss.item()}\n')
