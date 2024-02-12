@@ -16,7 +16,7 @@ import torch.nn as nn
 from sklearn.preprocessing import LabelBinarizer
 from jarvis.db.figshare import data as jdata
 from nfflr.data.dataset import AtomsDataset
-import tqdm
+from tqdm import tqdm
 
 import MDAnalysis as mda
 from MDAnalysis.transformations import boxdimensions
@@ -83,10 +83,10 @@ def RA_autocorrelation(data,
         cutoff = None
 
     auto_corr = torch.zeros((n_r_bins, n_theta_bins, n_phi_bins))
-    for r_ind, r in enumerate(r_bins):
+    for r_ind, r in tqdm(enumerate(r_bins), total = n_r_bins):
         for th_ind, theta in enumerate(th_bins):
             for phi_ind, phi in enumerate(phi_bins):
-                displacement = polar2cart(torch.tensor((r, theta, phi)))
+                displacement = spherical2cart(torch.tensor((r, theta, phi)))
                 auto_corr[r_ind, th_ind, phi_ind] = autocorrelation(data=data, 
                                                                     data_uncertainty=uncertainty, 
                                                                     atom_types=atom_types, 
@@ -94,8 +94,9 @@ def RA_autocorrelation(data,
                                                                     kernel=kernel, 
                                                                     cutoff=cutoff)
                 #stop multicounting spins that do nothing
-                if (theta == 0) and phi_ind != 1:
+                if (theta == 0) and phi_ind != 0:
                     auto_corr[r_ind, th_ind, phi_ind] = 0
+        
 
     tot_ind = find_local_max(auto_corr)
     peak_val = auto_corr[tot_ind[:, 0], tot_ind[:, 1], tot_ind[:, 2]]
@@ -103,33 +104,65 @@ def RA_autocorrelation(data,
     top_3_tot_ind = tot_ind[top3_peak_ind]
 
     r = r_bins[top_3_tot_ind[:, 0]]
-    angle = torch.stack([th_bins[top_3_tot_ind[:, 1]], phi_bins[top_3_tot_ind[:, 2]]], dim = -1)
+    theta = th_bins[top_3_tot_ind[:, 1]]
+    phi = phi_bins[top_3_tot_ind[:, 2]]
+    r = r.unsqueeze(-1)
+    theta = theta.unsqueeze(-1)
+    phi = phi.unsqueeze(-1)
 
-    return r, angle
+    output = torch.cat((r, theta, phi), dim = -1)
 
-def polar2cart(x):
+    return output
+
+def spherical2cart(x):
     """
     Convert polar to cartesian coordinates
     """
-    r = x[0]
-    theta = x[1]
-    phi = x[2]
+    resqueeze = False
+    if x.dim() == 1:
+        x = x.unsqueeze(0)
+        resqueeze = True
+    r = x[:, 0]
+    theta = x[:, 1]
+    phi = x[:, 2]
     x = r * np.sin(theta) * np.cos(phi)
     y = r * np.sin(theta) * np.sin(phi)
     z = r * np.cos(theta)
-    return torch.tensor((x, y, z))
 
-def cart2polar(x):
+    x = x.unsqueeze(-1)
+    y = y.unsqueeze(-1)
+    z = z.unsqueeze(-1)
+
+    output = torch.cat((x, y, z), dim=-1)
+    if resqueeze:
+        output = output.squeeze()
+    
+    return output
+
+def cart2spherical(r):
     """
-    Convert cartesian to polar coordinates
+    Convert cartesian to spherical coordinates
     """
-    x = x[0]
-    y = x[1]
-    z = x[2]
+    resqueeze = False
+    if r.dim() == 1:
+        r = r.unsqueeze(0)
+        resqueeze = True
+
+    x = r[:, 0]
+    y = r[:, 1]
+    z = r[:, 2]
     r = np.sqrt(x**2 + y**2 + z**2)
     theta = np.arccos(z/r)
     phi = np.arctan2(y, x)
-    return torch.tensor((r, theta, phi))
+    r = r.unsqueeze(-1)
+    theta = theta.unsqueeze(-1)
+    phi = phi.unsqueeze(-1)
+
+    output = torch.cat((r, theta, phi), dim=-1)
+    if resqueeze:
+        output = output.squeeze()
+
+    return output
 
 def autocorrelation(data: torch.tensor,
                     data_uncertainty: torch.tensor,
@@ -222,15 +255,5 @@ def create_supercell(data: torch.tensor, lattice: torch.tensor, n: int):
 
     return supercell
 
-if __name__ == "__main__":
-    """
-    parser = argparse.ArgumentParser(description='Compute the autocorrelation of the rdfs')
-    parser.add_argument('--r_max_mult', type=float, default=4, help='Number to multiply the smallest radius by to get maximum radial distance')
-    parser.add_argument('--n_r_bins', type=int, default=100, help='Number of radial bins')
-    parser.add_argument('--n_theta_bins', type=int, default=20, help='Number of angular bins')
-    parser.add_argument('--n_phi_bins', type=int, default=20, help='Number of azimuthal bins')
-    parser.add_argument('--n_space_bins', type=int, default=100, help='Number of bins in space')
-    parser.add_argument('--kernel', type=str, default='gaussian', help='Kernel to use for the autocorrelation')
-    args = parser.parse_args()
-    """
+
 
