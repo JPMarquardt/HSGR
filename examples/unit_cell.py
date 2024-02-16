@@ -25,13 +25,19 @@ sys.path.append(os.path.dirname(SCRIPT_DIR))
 
 from unit_cell_determination.RADFAC import RA_autocorrelation, autocorrelation, create_supercell, spherical2cart, cart2spherical
 from unit_cell_determination.MLP import *
+
 if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print(f'Using {device} device')
     data = AtomsDataset('dft_3d')
 
-
     for i in range(len(data)):
-        kwargs = {'r_max_mult': torch.tensor(4.0), 'n_r_bins': 200, 'n_theta_bins': 40, 'n_phi_bins': 40, 'n_space_bins': 100, 'kernel': 'gaussian'}
+        kwargs = {'r_max_mult': torch.tensor(4.0), 
+                  'n_r_bins': 200, 
+                  'n_theta_bins': 40, 'n_phi_bins': 40, 
+                  'n_space_bins': 100, 
+                  'kernel': 'gaussian', 
+                  'use_cutoff': True}
         data_point = data[i][0]
 
         n = 3

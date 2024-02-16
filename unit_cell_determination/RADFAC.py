@@ -65,7 +65,6 @@ def RA_autocorrelation(data,
     r_bins = torch.linspace(r_min, r_max, n_r_bins)
 
     #theta and phi bins
-
     dth = np.pi / n_theta_bins
     dphi = np.pi / n_phi_bins
     th_min = 0
@@ -78,7 +77,7 @@ def RA_autocorrelation(data,
 
     #cutoff should only be use when the data is very large
     if use_cutoff:
-        cutoff = r_max
+        cutoff = torch.max(uncertainty) * 3
     else: 
         cutoff = None
 
@@ -106,6 +105,7 @@ def RA_autocorrelation(data,
     r = r_bins[top_3_tot_ind[:, 0]]
     theta = th_bins[top_3_tot_ind[:, 1]]
     phi = phi_bins[top_3_tot_ind[:, 2]]
+
     r = r.unsqueeze(-1)
     theta = theta.unsqueeze(-1)
     phi = phi.unsqueeze(-1)
@@ -174,37 +174,44 @@ def autocorrelation(data: torch.tensor,
     Compute the autocorrelation of the data with a displacement
     Add math explanation below
     """
-    sign_matrix = atom_types[None, :] * atom_types[:, None]
+    n_atoms = data.shape[0]
+
+    x0 = data[None, :, :].repeat(n_atoms, 1, 1)
+    x1 = data[:, None, :].repeat(1, n_atoms, 1)
+    d = displacement.repeat(n_atoms**2, 1).view(n_atoms, n_atoms, 3)
+    dx = (x0 + d - x1)
+    square_distance_matrix = torch.sum(dx**2, dim = -1)[:, :, None]
+
+    if cutoff is not None:
+        mask = square_distance_matrix < (cutoff ** 2)
+        if mask.sum() == 0:
+            return 0
+
+    sign_matrix = atom_types[None, :, None] * atom_types[:, None, None]
     sign_matrix = torch.sum(sign_matrix, dim = -1)
     sign_matrix[sign_matrix == 0] = -1
 
-    sigma0 = data_uncertainty[None, :, None]
-    sigma1 = data_uncertainty[:, None, None]
-    k0 = 1 / (2 * sigma0 ** 2)
-    k1 = 1 / (2 * sigma1 ** 2)
-    x0 = data[None, :, :]
-    x1 = data[:, None, :]
-    d = displacement[None, None, :]
+    sigma0 = data_uncertainty[None, :, None].repeat(n_atoms, 1, 1)
+    sigma1 = data_uncertainty[:, None, None].repeat(1, n_atoms, 1)
 
     if cutoff is not None:
-        distance_matrix = torch.sqrt(torch.sum((x0 - x1 + d)**2, dim = -1))
-        mask = distance_matrix < cutoff
-        mask = mask[:, :, None]
-        k0 = k0 * mask
-        k1 = k1 * mask
-        x0 = x0 * mask
-        x1 = x1 * mask
+        sigma0 = torch.masked_select(sigma0, mask)
+        sigma1 = torch.masked_select(sigma1, mask)
+        square_distance_matrix = torch.masked_select(square_distance_matrix, mask)
+        sign_matrix = torch.masked_select(sign_matrix, mask)
+
+    k0 = 1 / (2 * sigma0 ** 2)
+    k1 = 1 / (2 * sigma1 ** 2)
 
     if kernel == 'gaussian':
         #compute the coefficients of the quadratic equation
         a = k0 + k1
-        dx = (x0 + d - x1) 
-        b = 2 * k0 * dx
-        c = k0 * dx ** 2
+        c = k0 * square_distance_matrix
+        b2 = 4 * k0 * c
 
         #factor out terms without x
         old_prefactor = 1/(2 * np.pi * sigma0 * sigma1)
-        exponent = torch.sum(c - (b**2)/(4*a), dim = -1)
+        exponent = torch.sum(c - (b2)/(4*a), dim = -1)
         exponential_prefactor = torch.exp(-exponent)
         new_integral = torch.sqrt(np.pi / a)
 
