@@ -58,6 +58,7 @@ def RA_autocorrelation(data,
 
     #atoms x atoms distance matrix
     distance_matrix = torch.sqrt(torch.sum((data[None, :, :] - data[:, None, :])**2, dim = -1))
+    device = data.device
 
     #r_min/max for bins
     r_min = torch.min(distance_matrix[distance_matrix != 0])
@@ -85,7 +86,7 @@ def RA_autocorrelation(data,
     for r_ind, r in tqdm(enumerate(r_bins), total = n_r_bins):
         for th_ind, theta in enumerate(th_bins):
             for phi_ind, phi in enumerate(phi_bins):
-                displacement = spherical2cart(torch.tensor((r, theta, phi)))
+                displacement = spherical2cart(torch.tensor((r, theta, phi))).to(device)
                 auto_corr[r_ind, th_ind, phi_ind] = autocorrelation(data=data, 
                                                                     data_uncertainty=uncertainty, 
                                                                     atom_types=atom_types, 
