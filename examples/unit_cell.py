@@ -4,6 +4,7 @@ import numpy as np
 import argparse
 import datetime
 from scipy.stats import entropy
+import math
 
 import matplotlib.pyplot as plt
 import matplotlib
@@ -63,11 +64,11 @@ if __name__ == '__main__':
         print(f'Lattice: {lattice}')
         loss = 0
         for j in range(3):
-            temp_loss = torch.tensor([0., 0., 0.])
-            for k in range(6):
+            temp_loss = torch.tensor([0., 0., 0., 0., 0., 0.])
+            for k in range(3):
                 temp_loss[k] = torch.mean(torch.abs(lattice[j] - cart[k]))
                 temp_loss[k+3] = torch.mean(torch.abs(lattice[j] + cart[k]))
-            loss += torch.min(temp_loss)
+            loss += temp_loss.min()
 
         with open('losses.txt', 'a') as f:
             f.write(f'{i}: {loss.item()}\n')

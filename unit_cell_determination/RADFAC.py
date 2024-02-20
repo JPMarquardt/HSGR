@@ -189,7 +189,11 @@ def autocorrelation(data: torch.tensor,
 
     sign_matrix = atom_types[None, :, None] * atom_types[:, None, None]
     sign_matrix = torch.sum(sign_matrix, dim = -1)
-    sign_matrix[sign_matrix == 0] = -1
+
+    if cutoff is not None:
+        sign_matrix = torch.masked_select(sign_matrix, mask)
+        if sign_matrix.sum() == 0:
+            return 0
 
     sigma0 = data_uncertainty[None, :, None].repeat(n_atoms, 1, 1)
     sigma1 = data_uncertainty[:, None, None].repeat(1, n_atoms, 1)
@@ -198,7 +202,6 @@ def autocorrelation(data: torch.tensor,
         sigma0 = torch.masked_select(sigma0, mask)
         sigma1 = torch.masked_select(sigma1, mask)
         square_distance_matrix = torch.masked_select(square_distance_matrix, mask)
-        sign_matrix = torch.masked_select(sign_matrix, mask)
 
     k0 = 1 / (2 * sigma0 ** 2)
     k1 = 1 / (2 * sigma1 ** 2)
