@@ -20,6 +20,7 @@ from tqdm import tqdm
 
 import MDAnalysis as mda
 from MDAnalysis.transformations import boxdimensions
+import gsd.hoomd
 
 """
 Hyperparameters:
@@ -75,6 +76,25 @@ def RA_autocorrelation(data,
 
     th_bins = torch.linspace(th_min, th_max, n_theta_bins)
     phi_bins = torch.linspace(phi_min, phi_max, n_phi_bins)
+
+    #calculate 2D ADF
+    theta_matrix = theta_angle_matrix(data)
+    phi_matrix = phi_angle_matrix(data)
+
+    ADF = torch.zeros((n_theta_bins, n_phi_bins))
+
+    for th_ind, theta in enumerate(th_bins):
+        theta_mask = (theta_matrix > theta) & (theta_matrix < theta + dth)
+        for phi_ind, phi in enumerate(phi_bins):
+            phi_mask = (phi_matrix > phi) & (phi_matrix < phi + dphi)
+            mask = theta_mask & phi_mask
+            print(torch.sum(mask))
+            ADF[th_ind, phi_ind] = torch.sum(mask)
+
+    #adf png
+    plt.figure()
+    sns.heatmap(ADF, cmap = 'viridis')
+    plt.savefig('ADF.png')
 
     #cutoff should only be use when the data is very large
     if use_cutoff:
@@ -164,6 +184,39 @@ def cart2spherical(r):
         output = output.squeeze()
 
     return output
+
+
+def theta_angle_matrix(data):
+    """
+    atoms x atoms angle matrix: from 1, 0, 0 in the xy plane
+    """ 
+    x0_xy = data[None, :, :2] - data[:, None, :2]
+    hypotenuse = torch.linalg.vector_norm(x0_xy, dim = -1)
+
+    x0_x = data[None, :, 0] - data[:, None, 0]
+    adjacent = x0_x
+
+    sign_y = torch.sign(x0_xy[:, :, 1])
+    
+    cos_theta = adjacent / hypotenuse
+
+    return torch.acos(cos_theta) * sign_y
+
+def phi_angle_matrix(data):
+    """
+    atoms x atoms angle matrix: angle above xy plane
+    """
+    x0_xy = data[None, :, :2] - data[:, None, :2]
+    adjacent = torch.linalg.vector_norm(x0_xy, dim = -1)
+
+    x0_xyz = data[None, :, :] - data[:, None, :]
+    hypotenuse = torch.linalg.vector_norm(x0_xyz, dim = -1)
+
+    sign_z = torch.sign(x0_xyz[:, :, 2])
+
+    cos_phi = adjacent / hypotenuse
+
+    return torch.acos(cos_phi) * sign_z
 
 def autocorrelation(data: torch.tensor,
                     data_uncertainty: torch.tensor,

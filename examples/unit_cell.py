@@ -41,12 +41,13 @@ if __name__ == '__main__':
                   'use_cutoff': True}
         data_point = data[i][0]
 
-        n = 3
+        n = math.floor((7000/data_point.numbers.shape[0])**(1/3))
         coords = data_point.positions
         lattice = data_point.lattice
         coords = coords @ lattice
         coords = create_supercell(coords, lattice, n)
         types = data_point.numbers.long()
+        print(lattice)
 
         ohe_types = torch.nn.functional.one_hot(types,num_classes=-1)
         mask = ohe_types.sum(dim=0) > 0
