@@ -78,18 +78,25 @@ def RA_autocorrelation(data,
     phi_bins = torch.linspace(phi_min, phi_max, n_phi_bins)
 
     #calculate 2D ADF
-    theta_matrix = theta_angle_matrix(data)
-    phi_matrix = phi_angle_matrix(data)
+    n_types = atom_types.shape[1]
+    type_isolation = []
+
+    for i in range(n_types):
+        mask = atom_types[:, i]
+        type_isolation.append(data[mask])
 
     ADF = torch.zeros((n_theta_bins, n_phi_bins))
+    theta_matrix_list = [theta_angle_matrix(data_i) for data_i in type_isolation]
+    phi_matrix_list = [phi_angle_matrix(data_i) for data_i in type_isolation]
 
-    for th_ind, theta in enumerate(th_bins):
-        theta_mask = (theta_matrix > theta) & (theta_matrix < theta + dth)
-        for phi_ind, phi in enumerate(phi_bins):
-            phi_mask = (phi_matrix > phi) & (phi_matrix < phi + dphi)
-            mask = theta_mask & phi_mask
-            print(torch.sum(mask))
-            ADF[th_ind, phi_ind] = torch.sum(mask)
+    for i in n_types:
+        for th_ind, theta in enumerate(th_bins):
+            theta_mask = (theta_matrix_list[i] > theta) & (theta_matrix_list[i] < theta + dth)
+            for phi_ind, phi in enumerate(phi_bins):
+                phi_mask = (phi_matrix_list[i] > phi) & (phi_matrix_list[i] < phi + dphi)
+                mask = theta_mask & phi_mask
+                print(torch.sum(mask))
+                ADF[th_ind, phi_ind] *= torch.sum(mask) ** (1/n_types)
 
     #adf png
     plt.figure()
@@ -189,7 +196,7 @@ def cart2spherical(r):
 def theta_angle_matrix(data):
     """
     atoms x atoms angle matrix: from 1, 0, 0 in the xy plane
-    """ 
+    """
     x0_xy = data[None, :, :2] - data[:, None, :2]
     hypotenuse = torch.linalg.vector_norm(x0_xy, dim = -1)
 
@@ -241,14 +248,6 @@ def autocorrelation(data: torch.tensor,
         if mask.sum() == 0:
             return 0
 
-    sign_matrix = atom_types[None, :, None] * atom_types[:, None, None]
-    sign_matrix = torch.sum(sign_matrix, dim = -1)
-
-    if cutoff is not None:
-        sign_matrix = torch.masked_select(sign_matrix, mask)
-        if sign_matrix.sum() == 0:
-            return 0
-
     sigma0 = data_uncertainty[None, :, None].repeat(n_atoms, 1, 1)
     sigma1 = data_uncertainty[:, None, None].repeat(1, n_atoms, 1)
 
@@ -278,7 +277,7 @@ def autocorrelation(data: torch.tensor,
         new_integral = torch.squeeze(new_integral)
 
         #compute the integral
-        integral = old_prefactor * exponential_prefactor * new_integral * sign_matrix
+        integral = old_prefactor * exponential_prefactor * new_integral
 
     return torch.sum(integral)
 
