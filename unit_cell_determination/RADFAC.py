@@ -85,11 +85,11 @@ def RA_autocorrelation(data,
         mask = atom_types[:, i]
         type_isolation.append(data[mask])
 
-    ADF = torch.zeros((n_theta_bins, n_phi_bins))
+    ADF = torch.ones((n_theta_bins, n_phi_bins))
     theta_matrix_list = [theta_angle_matrix(data_i) for data_i in type_isolation]
     phi_matrix_list = [phi_angle_matrix(data_i) for data_i in type_isolation]
 
-    for i in n_types:
+    for i in range(n_types) :
         for th_ind, theta in enumerate(th_bins):
             theta_mask = (theta_matrix_list[i] > theta) & (theta_matrix_list[i] < theta + dth)
             for phi_ind, phi in enumerate(phi_bins):
