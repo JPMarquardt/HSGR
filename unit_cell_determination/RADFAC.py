@@ -96,12 +96,13 @@ def RA_autocorrelation(data,
                 phi_mask = (phi_matrix_list[i] > phi) & (phi_matrix_list[i] < phi + dphi)
                 mask = theta_mask & phi_mask
                 print(torch.sum(mask))
-                ADF[th_ind, phi_ind] *= torch.sum(mask) ** (1/n_types)
+                ADF[i, th_ind, phi_ind] = torch.sum(mask) ** (1/n_types)
 
     #adf png
-    plt.figure()
-    sns.heatmap(ADF, cmap = 'viridis')
-    plt.savefig('ADF.png')
+    for i in range(n_types):
+        plt.figure()
+        sns.heatmap(ADF[i], cmap = 'viridis')
+        plt.savefig(f'ADF{i}.png')
 
     #cutoff should only be use when the data is very large
     if use_cutoff:
