@@ -35,7 +35,7 @@ if __name__ == '__main__':
     for i in range(len(data)):
         kwargs = {'r_max_mult': torch.tensor(4.0), 
                   'n_r_bins': 200, 
-                  'n_theta_bins': 40, 'n_phi_bins': 40, 
+                  'n_theta_bins': 80, 'n_phi_bins': 40, 
                   'n_space_bins': 100, 
                   'kernel': 'gaussian', 
                   'use_cutoff': True}
@@ -47,7 +47,6 @@ if __name__ == '__main__':
         coords = coords @ lattice
         coords = create_supercell(coords, lattice, n)
         types = data_point.numbers.long()
-        print(lattice)
 
         ohe_types = torch.nn.functional.one_hot(types,num_classes=-1)
         mask = ohe_types.sum(dim=0) > 0

@@ -70,9 +70,9 @@ def RA_autocorrelation(data,
     dth = np.pi / n_theta_bins
     dphi = np.pi / n_phi_bins
     th_min = 0
-    phi_min = -np.pi/2
-    th_max = np.pi - dth
-    phi_max = np.pi/2 - dphi
+    phi_min = 0
+    th_max = np.pi 
+    phi_max = np.pi
 
     th_bins = torch.linspace(th_min, th_max, n_theta_bins)
     phi_bins = torch.linspace(phi_min, phi_max, n_phi_bins)
@@ -82,25 +82,32 @@ def RA_autocorrelation(data,
     type_isolation = []
 
     for i in range(n_types):
-        mask = atom_types[:, i]
-        type_isolation.append(data[mask])
+        mask = atom_types[:, i] > 0
+        mask = mask.unsqueeze(-1).repeat(1, 3)
+        type_isolation.append(torch.masked_select(data, mask).view(-1, 3))
 
-    ADF = torch.ones((n_theta_bins, n_phi_bins))
     theta_matrix_list = [theta_angle_matrix(data_i) for data_i in type_isolation]
     phi_matrix_list = [phi_angle_matrix(data_i) for data_i in type_isolation]
 
-    for i in range(n_types) :
+    for i in range(n_types):
+        theta_matrix_list[i][theta_matrix_list[i] < 1e-6] = np.pi
+        phi_matrix_list[i][phi_matrix_list[i] < -np.pi/2 + 1e-6] = np.pi
+
+    ADF = torch.ones((n_theta_bins, n_phi_bins))
+
+    for i in range(n_types):
         for th_ind, theta in enumerate(th_bins):
-            theta_mask = (theta_matrix_list[i] > theta) & (theta_matrix_list[i] < theta + dth)
+            theta_mask = (theta_matrix_list[i] > theta) & (theta_matrix_list[i] <= theta + dth)
             for phi_ind, phi in enumerate(phi_bins):
-                phi_mask = (phi_matrix_list[i] > phi) & (phi_matrix_list[i] < phi + dphi)
+                phi_mask = (phi_matrix_list[i] > phi) & (phi_matrix_list[i] <= phi + dphi)
                 mask = theta_mask & phi_mask
-                print(torch.sum(mask))
                 ADF[th_ind, phi_ind] *= torch.sum(mask) ** (1/n_types)
 
     #adf png
     plt.figure()
     sns.heatmap(ADF, cmap = 'viridis')
+    plt.xlabel('phi')
+    plt.ylabel('theta')
     plt.savefig('ADF.png')
 
     #cutoff should only be use when the data is very large
@@ -207,14 +214,16 @@ def theta_angle_matrix(data):
     
     cos_theta = adjacent / hypotenuse
 
-    return torch.acos(cos_theta) * sign_y
+    cos_theta = torch.clamp(cos_theta, -1, 1)
+
+    return torch.acos(cos_theta)*sign_y
 
 def phi_angle_matrix(data):
     """
     atoms x atoms angle matrix: angle above xy plane
     """
-    x0_xy = data[None, :, :2] - data[:, None, :2]
-    adjacent = torch.linalg.vector_norm(x0_xy, dim = -1)
+    x0_z = data[None, :, 2] - data[:, None, 2]
+    adjacent = x0_z
 
     x0_xyz = data[None, :, :] - data[:, None, :]
     hypotenuse = torch.linalg.vector_norm(x0_xyz, dim = -1)
@@ -223,7 +232,13 @@ def phi_angle_matrix(data):
 
     cos_phi = adjacent / hypotenuse
 
-    return torch.acos(cos_phi) * sign_z
+    cos_phi = cos_phi.fill_diagonal_(0)
+
+    print(cos_phi.min(), cos_phi.max())
+
+    cos_phi = torch.clamp(cos_phi, -1, 1)
+
+    return torch.acos(cos_phi)
 
 def autocorrelation(data: torch.tensor,
                     data_uncertainty: torch.tensor,
