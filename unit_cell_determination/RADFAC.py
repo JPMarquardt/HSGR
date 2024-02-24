@@ -65,6 +65,7 @@ def RA_autocorrelation(data,
     r_min = torch.min(distance_matrix[distance_matrix != 0])
     r_max = r_min * r_max_mult
     r_bins = torch.linspace(r_min, r_max, n_r_bins)
+    dr = (r_max - r_min) / n_r_bins
 
     #theta and phi bins
     dth = np.pi / n_theta_bins
@@ -85,23 +86,32 @@ def RA_autocorrelation(data,
         mask = atom_types[:, i]
         type_isolation.append(data[mask])
 
-    ADF = torch.ones((n_theta_bins, n_phi_bins))
+    RADF = torch.ones((r_bins, n_theta_bins, n_phi_bins))
     theta_matrix_list = [theta_angle_matrix(data_i) for data_i in type_isolation]
     phi_matrix_list = [phi_angle_matrix(data_i) for data_i in type_isolation]
 
+    r_mask = []
+    theta_mask = []
+    phi_mask = []
+
     for i in range(n_types) :
+        for r_ind, r in enumerate(r_bins):
+            r_mask.append((distance_matrix > r) & (distance_matrix <= r + dr))
         for th_ind, theta in enumerate(th_bins):
-            theta_mask = (theta_matrix_list[i] > theta) & (theta_matrix_list[i] < theta + dth)
-            for phi_ind, phi in enumerate(phi_bins):
-                phi_mask = (phi_matrix_list[i] > phi) & (phi_matrix_list[i] < phi + dphi)
-                mask = theta_mask & phi_mask
-                print(torch.sum(mask))
-                ADF[i, th_ind, phi_ind] = torch.sum(mask) ** (1/n_types)
+            theta_mask.append((theta_matrix_list[i] > theta) & (theta_matrix_list[i] <= theta + dth))
+        for phi_ind, phi in enumerate(phi_bins):
+            phi_mask.append((phi_matrix_list[i] > phi) & (phi_matrix_list[i] <= phi + dphi))
+
+        for r_ind in range(n_r_bins):
+            for th_ind in range(n_theta_bins):
+                for phi_ind in range(n_phi_bins):
+                    mask = theta_mask[th_ind] & phi_mask[phi_ind] & r_mask[r_ind]
+                    RADF[r_ind, th_ind, phi_ind] = torch.sum(mask) ** (1/n_types)
 
     #adf png
     for i in range(n_types):
         plt.figure()
-        sns.heatmap(ADF[i], cmap = 'viridis')
+        sns.heatmap(RADF[i], cmap = 'viridis')
         plt.savefig(f'ADF{i}.png')
 
     #cutoff should only be use when the data is very large
