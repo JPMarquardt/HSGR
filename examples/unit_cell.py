@@ -36,7 +36,6 @@ if __name__ == '__main__':
         kwargs = {'r_max_mult': torch.tensor(4.0), 
                   'n_r_bins': 200, 
                   'n_theta_bins': 40, 'n_phi_bins': 40, 
-                  'n_space_bins': 100, 
                   'kernel': 'gaussian', 
                   'use_cutoff': True}
         data_point = data[i][0]
@@ -45,9 +44,9 @@ if __name__ == '__main__':
         coords = data_point.positions
         lattice = data_point.lattice
         coords = coords @ lattice
+        print(lattice)
         coords = create_supercell(coords, lattice, n)
         types = data_point.numbers.long()
-        print(lattice)
 
         ohe_types = torch.nn.functional.one_hot(types,num_classes=-1)
         mask = ohe_types.sum(dim=0) > 0
@@ -61,6 +60,7 @@ if __name__ == '__main__':
         spherical, auto_corr = RA_autocorrelation(coords, uncertainty = uncertainty, atom_types = ohe_types, **kwargs)
         cart = spherical2cart(spherical)
 
+        print(f'Spherical: {spherical}')
         print(f'Cartesian: {cart}')
         print(f'Lattice: {lattice}')
         loss = 0
