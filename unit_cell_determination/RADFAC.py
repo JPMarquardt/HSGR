@@ -64,13 +64,13 @@ def RA_autocorrelation(data,
     device = data.device
 
     #binning
-    r_min = torch.min(torch.masked_select(r_matrix, r_matrix > 0))
-    th_min = 0
+    r_min = torch.min(r_matrix[r_matrix > 0])
+    th_min = -np.pi
     phi_min = 0
 
     r_max = r_min * r_max_mult
     th_max = np.pi
-    phi_max = np.pi
+    phi_max = 2*np.pi
 
     dr = (r_max - r_min) / n_r_bins
     dth = (th_max - th_min) / n_theta_bins
@@ -91,9 +91,11 @@ def RA_autocorrelation(data,
 
     for i in range(n_types):
         mask = atom_types[:, i].bool()
-        data_type_isolation.append(torch.masked_select(data, mask[:,None]).view(-1, 3))
-        uncertainty_type_isolation.append(torch.masked_select(uncertainty, mask).view(-1))
-        type_type_isolation.append(torch.ones((torch.sum(mask))).view(-1))
+
+        data_type_isolation.append(data[mask].view(-1, 3))
+        uncertainty_type_isolation.append(uncertainty[mask])
+        type_type_isolation.append(torch.ones((torch.sum(mask))))
+
         r_mask.append(torch.zeros(n_r_bins, torch.sum(mask), torch.sum(mask)).bool())
         theta_mask.append(torch.zeros(n_theta_bins, torch.sum(mask), torch.sum(mask)).bool())
         phi_mask.append(torch.zeros(n_phi_bins, torch.sum(mask), torch.sum(mask)).bool())
@@ -105,26 +107,31 @@ def RA_autocorrelation(data,
 
     #masks
     final_mask = torch.ones(n_r_bins, n_theta_bins, n_phi_bins).bool()
+    r_th_phi_mask_list = []
 
 
     #calculate masks for each of the atom types
     print('Calculating RADF')
     for i in range(n_types):
+        r_matrix = r_matrix_list[i]
+        theta_matrix = theta_matrix_list[i]
+        phi_matrix = phi_matrix_list[i]
+
         for r_ind, r in enumerate(r_bins):
             r_new = r - dr/2
-            r_mat = torch.logical_and((r_matrix_list[i] > r_new), (r_matrix_list[i] <= r_new + dr))
+            r_mat = (r_matrix > r_new) & (r_matrix <= r_new + dr)
             r_mask[i][r_ind] = r_mat
         for th_ind, th in enumerate(th_bins):
-            th_new = th - dth/2
-            th_mat = torch.logical_and((theta_matrix_list[i] > th_new), (theta_matrix_list[i] <= th_new + dth))
+            th_new = th
+            th_mat = (theta_matrix > th_new) & (theta_matrix <= th_new + dth)
             theta_mask[i][th_ind] = th_mat
         for phi_ind, phi in enumerate(phi_bins):
-            phi_new = phi - dphi/2
-            phi_mat = torch.logical_and((phi_matrix_list[i] > phi_new), (phi_matrix_list[i] <= phi_new + dphi))
+            phi_new = phi
+            phi_mat = (phi_matrix > phi_new) & (phi_matrix <= phi_new + dphi)
             phi_mask[i][phi_ind] = phi_mat
 
         intermediate_mask = torch.zeros(n_r_bins, n_theta_bins, n_phi_bins).bool()
-        total = r_mask[i][r_ind].shape[0]
+
         #caulcuate RADF
         for r_ind, r in tqdm(enumerate(r_bins)):
             if torch.sum(r_mask[i][r_ind]) == 0:
@@ -137,46 +144,69 @@ def RA_autocorrelation(data,
                 for phi_ind, phi in enumerate(phi_bins):
                     ##if torch.sum(phi_mask[i][phi_ind]) == 0:
                     ##    continue
-                    r_th = torch.logical_and(r_mask[i][r_ind], theta_mask[i][th_ind])
-                    r_th_phi = torch.logical_and(r_th, phi_mask[i][phi_ind])
+                    r_th = r_mask[i][r_ind] & theta_mask[i][th_ind]
+                    r_th_phi = r_th & phi_mask[i][phi_ind]
                     final_sum = torch.sum(r_th_phi)
                     if final_sum > 0:
-                        print('here')
+                        #this list of lists is horrible fix it using multidimensional tensors
+                        r_th_phi_mask_list[i].append(r_th_phi)
                         intermediate_mask[r_ind, th_ind, phi_ind] = True
-                        if r_ind > 0:
-                            intermediate_mask[r_ind-1, th_ind, phi_ind] = True
-                        if r_ind < n_r_bins - 1:
-                            intermediate_mask[r_ind+1, th_ind, phi_ind] = True
-                        if th_ind > 0:
-                            intermediate_mask[r_ind, th_ind-1, phi_ind] = True
-                        if th_ind < n_theta_bins - 1:
-                            intermediate_mask[r_ind, th_ind+1, phi_ind] = True
-                        if phi_ind > 0:
-                            intermediate_mask[r_ind, th_ind, phi_ind-1] = True
-                        if phi_ind < n_phi_bins - 1:
-                            intermediate_mask[r_ind, th_ind, phi_ind+1] = True
-        print(torch.sum(torch.where(intermediate_mask, 1, 0)))
-        final_mask = torch.logical_and(final_mask, intermediate_mask)
-        print(torch.sum(torch.where(final_mask, 1, 0)))    
 
-    print(torch.sum(torch.where(final_mask, 1, 0)))
+        final_mask = final_mask & intermediate_mask
+
+    which_rtp = final_mask.nonzero()
+    average_xyz = torch.zeros((n_types, len(which_rtp), 3))
+
+    for j, r_th_phi_ind in enumerate(which_rtp):
+        r_ind = r_th_phi_ind[0]
+        th_ind = r_th_phi_ind[1]
+        phi_ind = r_th_phi_ind[2]
+
+        #find average r t p in buckets
+        for i in range(n_types):
+            r_matrix = r_matrix_list[i]
+            theta_matrix = theta_matrix_list[i]
+            phi_matrix = phi_matrix_list[i]
+
+            lower_triangle_bool = torch.tril(torch.ones(r_matrix.shape), diagonal = -1).bool()
+
+            r_mask_lower = r_mask[i][r_ind] & lower_triangle_bool
+            theta_mask_lower = theta_mask[i][th_ind] & lower_triangle_bool
+            phi_mask_lower = phi_mask[i][phi_ind] & lower_triangle_bool
+
+            r = r_matrix[r_mask_lower]
+            theta = theta_matrix[theta_mask_lower]
+            phi = phi_matrix[phi_mask_lower]
+
+            r = r.unsqueeze(-1)
+            theta = theta.unsqueeze(-1)
+            phi = phi.unsqueeze(-1)
+
+            print(r.shape, theta.shape, phi.shape)
+
+            rtp = torch.cat((r, theta, phi), dim = -1)
+
+            average_xyz[i, j] = torch.mean(spherical2cart(rtp))
+
+    average_xyz = torch.mean(average_xyz, dim = 0)
+    print(average_xyz)
+
+    #initizlize cutoff (rarely used, but can be useful for large systems with high resolution)
     if use_cutoff:
         cutoff = torch.max(uncertainty) * 3
     else:
         cutoff = None
 
-    final_mask = torch.logical_not(final_mask)
-
     print('Calculating kernel RAAC')
     RAAC = torch.zeros((n_r_bins, n_theta_bins, n_phi_bins))
-    for r_ind, r in tqdm(enumerate(r_bins)):
-        for th_ind, theta in enumerate(th_bins):
-            for phi_ind, phi in enumerate(phi_bins):
-                if final_mask[r_ind, th_ind, phi_ind]:
-                    continue
-                for i in range(n_types):
-                    displacement = spherical2cart(torch.tensor([r, theta, phi]))
-                    RAAC[r_ind, th_ind, phi_ind] += autocorrelation(data_type_isolation[i], uncertainty_type_isolation[i], type_type_isolation[i], displacement, kernel, cutoff)
+    for rtp_ind, xyz in zip(which_rtp, average_xyz):
+        r_ind = rtp_ind[0]
+        th_ind = rtp_ind[1]
+        phi_ind = rtp_ind[2]
+        displacement = xyz
+        print(rtp, displacement)
+        RAAC[r_ind, th_ind, phi_ind] += autocorrelation(data, uncertainty, atom_types, displacement, kernel = kernel, cutoff = cutoff)
+ 
 
     #adf png
     candidates = find_local_max(RAAC)
@@ -201,9 +231,11 @@ def spherical2cart(x):
     Convert polar to cartesian coordinates
     """
     resqueeze = False
+
     if x.dim() == 1:
         x = x.unsqueeze(0)
         resqueeze = True
+
     r = x[:, 0]
     theta = x[:, 1]
     phi = x[:, 2]
@@ -216,6 +248,7 @@ def spherical2cart(x):
     z = z.unsqueeze(-1)
 
     output = torch.cat((x, y, z), dim=-1)
+
     if resqueeze:
         output = output.squeeze()
     
@@ -317,9 +350,9 @@ def autocorrelation(data: torch.tensor,
     sigma1 = data_uncertainty[:, None, None].repeat(1, n_atoms, 1)
 
     if cutoff is not None:
-        sigma0 = torch.masked_select(sigma0, mask)
-        sigma1 = torch.masked_select(sigma1, mask)
-        square_distance_matrix = torch.masked_select(square_distance_matrix, mask)
+        sigma0 = sigma0[mask]
+        sigma1 = sigma1[mask]
+        square_distance_matrix = square_distance_matrix[mask]
 
     k0 = 1 / (2 * sigma0 ** 2)
     k1 = 1 / (2 * sigma1 ** 2)
