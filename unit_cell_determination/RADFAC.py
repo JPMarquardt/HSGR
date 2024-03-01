@@ -89,16 +89,21 @@ def RA_autocorrelation(data,
     theta_mask = []
     phi_mask = []
 
-    for i in range(n_types):
-        mask = atom_types[:, i].bool()
 
-        data_type_isolation.append(data[mask].view(-1, 3))
-        uncertainty_type_isolation.append(uncertainty[mask])
+    mask = atom_types.bool()
+
+    #data is shape (n_atoms, 3) and mask is shape (n_atoms, n_types)
+    mask_expand = mask[:, :, None].expand(-1, -1, 3)
+    data_expand = data[:, None, :].expand(-1, n_types, -1)
+    uncertainty_expand = uncertainty[:, None].expand(-1, n_types)
+
+    dataXtype = torch.where(mask_expand, data_expand, torch.nan)
+    uncertaintyXtype = torch.where(mask, uncertainty_expand, torch.nan)
         type_type_isolation.append(torch.ones((torch.sum(mask))))
 
-        r_mask.append(torch.zeros(n_r_bins, torch.sum(mask), torch.sum(mask)).bool())
-        theta_mask.append(torch.zeros(n_theta_bins, torch.sum(mask), torch.sum(mask)).bool())
-        phi_mask.append(torch.zeros(n_phi_bins, torch.sum(mask), torch.sum(mask)).bool())
+    r_mask.append(torch.zeros(n_r_bins, torch.sum(mask), torch.sum(mask)).bool())
+    theta_mask.append(torch.zeros(n_theta_bins, torch.sum(mask), torch.sum(mask)).bool())
+    phi_mask.append(torch.zeros(n_phi_bins, torch.sum(mask), torch.sum(mask)).bool())
 
     #get distance, theta, and phi matrices for each of the atom types
     r_matrix_list = [distance_matrix(data_i) for data_i in data_type_isolation]
