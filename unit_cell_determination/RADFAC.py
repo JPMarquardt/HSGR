@@ -57,8 +57,28 @@ def RA_autocorrelation(data,
         uncertainty = kwargs['uncertainty']
         atom_types = kwargs['atom_types']
 
-    #atoms x atoms distance matrix
-    r_matrix = distance_matrix(data)
+    #get types
+    n_types = atom_types.shape[1]
+    mask = atom_types.bool()
+
+    #data is shape (n_atoms, 3) and mask is shape (n_atoms, n_types)
+    mask_expand = mask[:, None, :].expand(-1, 3, -1)
+    data_expand = data[:, :, None].expand(-1, -1, n_types)
+    
+
+    #dataXtype is shape (n_atoms, n_types, 3)
+    dataXtype = torch.where(mask_expand, data_expand, torch.nan)
+    
+    #isolates the data for each atom type
+    def dataXtype2data_i(dataXtype, i):
+        data = dataXtype[:, i, :]
+        data = data[~torch.isnan(data).any(dim = -1)]
+        return data
+
+    #get distance, theta, and phi matrices for each of the atom types
+    r_matrix = distance_matrix(dataXtype)
+    theta_matrix = theta_angle_matrix(dataXtype)
+    phi_matrix = phi_angle_matrix(dataXtype)
 
     #device
     device = data.device
@@ -80,88 +100,57 @@ def RA_autocorrelation(data,
     th_bins = torch.linspace(th_min, th_max, n_theta_bins)
     phi_bins = torch.linspace(phi_min, phi_max, n_phi_bins)
 
-    #get types
-    n_types = atom_types.shape[1]
-    data_type_isolation = []
-    uncertainty_type_isolation = []
-    type_type_isolation = []
-    r_mask = []
-    theta_mask = []
-    phi_mask = []
-
-
-    mask = atom_types.bool()
-
-    #data is shape (n_atoms, 3) and mask is shape (n_atoms, n_types)
-    mask_expand = mask[:, :, None].expand(-1, -1, 3)
-    data_expand = data[:, None, :].expand(-1, n_types, -1)
-    uncertainty_expand = uncertainty[:, None].expand(-1, n_types)
-
-    dataXtype = torch.where(mask_expand, data_expand, torch.nan)
-    uncertaintyXtype = torch.where(mask, uncertainty_expand, torch.nan)
-        type_type_isolation.append(torch.ones((torch.sum(mask))))
-
-    r_mask.append(torch.zeros(n_r_bins, torch.sum(mask), torch.sum(mask)).bool())
-    theta_mask.append(torch.zeros(n_theta_bins, torch.sum(mask), torch.sum(mask)).bool())
-    phi_mask.append(torch.zeros(n_phi_bins, torch.sum(mask), torch.sum(mask)).bool())
-
-    #get distance, theta, and phi matrices for each of the atom types
-    r_matrix_list = [distance_matrix(data_i) for data_i in data_type_isolation]
-    theta_matrix_list = [theta_angle_matrix(data_i) for data_i in data_type_isolation]
-    phi_matrix_list = [phi_angle_matrix(data_i) for data_i in data_type_isolation]
-
     #masks
-    final_mask = torch.ones(n_r_bins, n_theta_bins, n_phi_bins).bool()
-    r_th_phi_mask_list = []
-
+    maskDict = {}
+    r_mask = torch.zeros((n_r_bins, r_matrix.shape[0], r_matrix.shape[1], n_types), dtype = torch.bool)
+    theta_mask = torch.zeros((n_theta_bins, r_matrix.shape[0], r_matrix.shape[1], n_types), dtype = torch.bool)
+    phi_mask = torch.zeros((n_phi_bins, r_matrix.shape[0], r_matrix.shape[1], n_types), dtype = torch.bool)
 
     #calculate masks for each of the atom types
+    print('Calculating RDF and ADF')
+    for r_ind, r in enumerate(r_bins):
+        r_new = r - dr/2
+        r_mat = (r_matrix > r_new) & (r_matrix <= r_new + dr)
+        r_mask[r_ind] = r_mat
+    for th_ind, th in enumerate(th_bins):
+        th_new = th
+        th_mat = (theta_matrix > th_new) & (theta_matrix <= th_new + dth)
+        theta_mask[th_ind] = th_mat
+    for phi_ind, phi in enumerate(phi_bins):
+        phi_new = phi
+        phi_mat = (phi_matrix > phi_new) & (phi_matrix <= phi_new + dphi)
+        phi_mask[phi_ind] = phi_mat
+
     print('Calculating RADF')
-    for i in range(n_types):
-        r_matrix = r_matrix_list[i]
-        theta_matrix = theta_matrix_list[i]
-        phi_matrix = phi_matrix_list[i]
+    #caulcuate RADF
+    for r_ind, r_mask_i in tqdm(enumerate(r_mask)):
+        if check_mask_zeros(r_mask_i):
+            continue
 
-        for r_ind, r in enumerate(r_bins):
-            r_new = r - dr/2
-            r_mat = (r_matrix > r_new) & (r_matrix <= r_new + dr)
-            r_mask[i][r_ind] = r_mat
-        for th_ind, th in enumerate(th_bins):
-            th_new = th
-            th_mat = (theta_matrix > th_new) & (theta_matrix <= th_new + dth)
-            theta_mask[i][th_ind] = th_mat
-        for phi_ind, phi in enumerate(phi_bins):
-            phi_new = phi
-            phi_mat = (phi_matrix > phi_new) & (phi_matrix <= phi_new + dphi)
-            phi_mask[i][phi_ind] = phi_mat
+        for th_ind, th_mask_i in enumerate(theta_mask):
+            r_th_mask = r_mask_i & th_mask_i
 
-        intermediate_mask = torch.zeros(n_r_bins, n_theta_bins, n_phi_bins).bool()
-
-        #caulcuate RADF
-        for r_ind, r in tqdm(enumerate(r_bins)):
-            if torch.sum(r_mask[i][r_ind]) == 0:
-                intermediate_mask[r_ind] = False
+            if check_mask_zeros(r_th_mask):
                 continue
-            for th_ind, th in enumerate(th_bins):
-                #In reality the theta and phi mask sum rarely equals 0 so this is a good way to speed up the calculation
-                ##if torch.sum(theta_mask[i][th_ind]) == 0:
-                ##    continue
-                for phi_ind, phi in enumerate(phi_bins):
-                    ##if torch.sum(phi_mask[i][phi_ind]) == 0:
-                    ##    continue
-                    r_th = r_mask[i][r_ind] & theta_mask[i][th_ind]
-                    r_th_phi = r_th & phi_mask[i][phi_ind]
-                    final_sum = torch.sum(r_th_phi)
-                    if final_sum > 0:
-                        #this list of lists is horrible fix it using multidimensional tensors
-                        r_th_phi_mask_list[i].append(r_th_phi)
-                        intermediate_mask[r_ind, th_ind, phi_ind] = True
+            
+            for phi_ind, phi_mask_i in enumerate(phi_mask):
+                r_th_phi = r_th_mask & phi_mask_i
+                if check_mask_zeros(r_th_phi):
+                    continue
 
-        final_mask = final_mask & intermediate_mask
+                hash_key = (r_ind, th_ind, phi_ind)
+                maskDict[hash_key] = r_th_phi
 
-    which_rtp = final_mask.nonzero()
+    #uncertaintyXtype is shape (n_atoms, n_types)
+    uncertainty_expand = uncertainty[:, None].expand(-1, n_types)
+    uncertaintyXtype = torch.where(mask, uncertainty_expand, torch.nan)
+
+
+    which_rtp = maskDict.keys()
+    print(which_rtp)
     average_xyz = torch.zeros((n_types, len(which_rtp), 3))
 
+    print('Calculating autocorrelation on averaged peaks')
     for j, r_th_phi_ind in enumerate(which_rtp):
         r_ind = r_th_phi_ind[0]
         th_ind = r_th_phi_ind[1]
@@ -289,6 +278,8 @@ def theta_angle_matrix(data):
     """
     atoms x atoms angle matrix: from 1, 0, 0 in the xy plane
     """
+    full_distance_matrix = distance_matrix(data)
+
     hypotenuse = distance_matrix(data[:,:2])
 
     adjacent = data[None, :, 0] - data[:, None, 0]
@@ -297,11 +288,11 @@ def theta_angle_matrix(data):
     
     cos_theta = adjacent / hypotenuse
 
-    cos_theta[hypotenuse == 0] = 1
+    non_diagonal_nans = (hypotenuse == 0) & (full_distance_matrix != 0)
+
+    cos_theta[non_diagonal_nans] = 1
 
     cos_theta = torch.clamp(cos_theta, -1, 1)
-
-    cos_theta = cos_theta.fill_diagonal_(np.nan)
 
     return torch.acos(cos_theta) * sign_y
 
@@ -321,10 +312,10 @@ def distance_matrix(data: torch.tensor):
     """
     Compute the distance matrix
     """
-    x0 = data[None, :, :]
-    x1 = data[:, None, :]
+    x0 = data[None, :]
+    x1 = data[:, None]
     dx = (x0 - x1)
-    square_distance_matrix = torch.sqrt(torch.sum(dx**2, dim = -1))
+    square_distance_matrix = torch.sqrt(torch.sum(dx**2, dim = 2))
 
     return square_distance_matrix
 
@@ -405,6 +396,16 @@ def find_local_max(DF):
     output = and_matrix.nonzero()
     
     return output
+
+def check_mask_zeros(mask):
+    """
+    Check if the mask has any zeros for any of the atom types
+    """
+    for i in range(mask.shape[-1]):
+        if torch.sum(mask[:, :, i]) == 0:
+            return True
+    else:
+        return False
 
 def create_supercell(data: torch.tensor, lattice: torch.tensor, n: int):
     """
