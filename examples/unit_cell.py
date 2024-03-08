@@ -29,14 +29,14 @@ from unit_cell_determination.MLP import *
 
 if __name__ == '__main__':
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = 'cpu'
     print(f'Using {device} device')
     data = AtomsDataset('dft_3d')
 
     for i in range(len(data)):
         kwargs = {'r_max_mult': torch.tensor(4.0), 
                   'n_r_bins': 200, 
-                  'n_theta_bins': 80, 'n_phi_bins': 40, 
-                  'n_space_bins': 100, 
+                  'n_theta_bins': 40, 'n_phi_bins': 40, 
                   'kernel': 'gaussian', 
                   'use_cutoff': True}
         data_point = data[i][0]
@@ -45,6 +45,7 @@ if __name__ == '__main__':
         coords = data_point.positions
         lattice = data_point.lattice
         coords = coords @ lattice
+        print(lattice)
         coords = create_supercell(coords, lattice, n)
         types = data_point.numbers.long()
 
@@ -60,6 +61,7 @@ if __name__ == '__main__':
         spherical, auto_corr = RA_autocorrelation(coords, uncertainty = uncertainty, atom_types = ohe_types, **kwargs)
         cart = spherical2cart(spherical)
 
+        print(f'Spherical: {spherical}')
         print(f'Cartesian: {cart}')
         print(f'Lattice: {lattice}')
         loss = 0
