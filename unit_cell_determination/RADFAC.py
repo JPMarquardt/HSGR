@@ -112,10 +112,12 @@ def RA_autocorrelation(data,
         r_new = r - dr/2
         r_mat = (r_matrix > r_new) & (r_matrix <= r_new + dr)
         r_mask[r_ind] = r_mat
+
     for th_ind, th in enumerate(th_bins):
         th_new = th
         th_mat = (theta_matrix > th_new) & (theta_matrix <= th_new + dth)
         theta_mask[th_ind] = th_mat
+
     for phi_ind, phi in enumerate(phi_bins):
         phi_new = phi
         phi_mat = (phi_matrix > phi_new) & (phi_matrix <= phi_new + dphi)
@@ -135,16 +137,12 @@ def RA_autocorrelation(data,
             
             for phi_ind, phi_mask_i in enumerate(phi_mask):
                 r_th_phi = r_th_mask & phi_mask_i
+                
                 if check_mask_zeros(r_th_phi):
                     continue
 
                 hash_key = (r_ind, th_ind, phi_ind)
                 maskDict[hash_key] = r_th_phi
-
-    #uncertaintyXtype is shape (n_atoms, n_types)
-    uncertainty_expand = uncertainty[:, None].expand(-1, n_types)
-    uncertaintyXtype = torch.where(mask, uncertainty_expand, torch.nan)
-
 
     which_rtp = maskDict.keys()
     print(which_rtp)
@@ -156,31 +154,25 @@ def RA_autocorrelation(data,
         th_ind = r_th_phi_ind[1]
         phi_ind = r_th_phi_ind[2]
 
-        #find average r t p in buckets
-        for i in range(n_types):
-            r_matrix = r_matrix_list[i]
-            theta_matrix = theta_matrix_list[i]
-            phi_matrix = phi_matrix_list[i]
+        lower_triangle_bool = torch.tril(torch.ones(r_matrix.shape), diagonal = -1).bool()
 
-            lower_triangle_bool = torch.tril(torch.ones(r_matrix.shape), diagonal = -1).bool()
+        r_mask_lower = r_mask[r_ind] & lower_triangle_bool
+        theta_mask_lower = theta_mask[th_ind] & lower_triangle_bool
+        phi_mask_lower = phi_mask[phi_ind] & lower_triangle_bool
 
-            r_mask_lower = r_mask[i][r_ind] & lower_triangle_bool
-            theta_mask_lower = theta_mask[i][th_ind] & lower_triangle_bool
-            phi_mask_lower = phi_mask[i][phi_ind] & lower_triangle_bool
+        r = r_matrix[r_mask_lower]
+        theta = theta_matrix[theta_mask_lower]
+        phi = phi_matrix[phi_mask_lower]
 
-            r = r_matrix[r_mask_lower]
-            theta = theta_matrix[theta_mask_lower]
-            phi = phi_matrix[phi_mask_lower]
+        r = r.unsqueeze(-1)
+        theta = theta.unsqueeze(-1)
+        phi = phi.unsqueeze(-1)
 
-            r = r.unsqueeze(-1)
-            theta = theta.unsqueeze(-1)
-            phi = phi.unsqueeze(-1)
+        print(r.shape, theta.shape, phi.shape)
 
-            print(r.shape, theta.shape, phi.shape)
+        rtp = torch.cat((r, theta, phi), dim = -1)
 
-            rtp = torch.cat((r, theta, phi), dim = -1)
-
-            average_xyz[i, j] = torch.mean(spherical2cart(rtp))
+        average_xyz[i, j] = torch.mean(spherical2cart(rtp))
 
     average_xyz = torch.mean(average_xyz, dim = 0)
     print(average_xyz)
