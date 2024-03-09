@@ -68,12 +68,6 @@ def RA_autocorrelation(data,
 
     #dataXtype is shape (n_atoms, n_types, 3)
     dataXtype = torch.where(mask_expand, data_expand, torch.nan)
-    
-    #isolates the data for each atom type
-    def dataXtype2data_i(dataXtype, i):
-        data = dataXtype[:, i, :]
-        data = data[~torch.isnan(data).any(dim = -1)]
-        return data
 
     #get distance, theta, and phi matrices for each of the atom types
     r_matrix = distance_matrix(dataXtype)
@@ -85,12 +79,12 @@ def RA_autocorrelation(data,
 
     #binning
     r_min = torch.min(r_matrix[r_matrix > 0])
-    th_min = -np.pi
-    phi_min = 0
+    th_min = 0
+    phi_min = -np.pi
 
     r_max = r_min * r_max_mult
-    th_max = np.pi
-    phi_max = 2*np.pi
+    th_max = 2*np.pi
+    phi_max = np.pi
 
     dr = (r_max - r_min) / n_r_bins
     dth = (th_max - th_min) / n_theta_bins
@@ -107,7 +101,7 @@ def RA_autocorrelation(data,
     phi_mask = torch.zeros((n_phi_bins, r_matrix.shape[0], r_matrix.shape[1], n_types), dtype = torch.bool)
 
     #calculate masks for each of the atom types
-    print('Calculating RDF and ADF')
+    print('Calculating RDF and ADF masks')
     for r_ind, r in enumerate(r_bins):
         r_new = r - dr/2
         r_mat = (r_matrix > r_new) & (r_matrix <= r_new + dr)
@@ -145,72 +139,68 @@ def RA_autocorrelation(data,
                 maskDict[hash_key] = r_th_phi
 
     which_rtp = maskDict.keys()
-    print(which_rtp)
-    average_xyz = torch.zeros((len(which_rtp), 3))
+    n_rtp = len(which_rtp)
+    average_xyz = torch.zeros((n_rtp, 3))
 
     print('Calculating averaged peaks')
-    for j, r_th_phi_ind in enumerate(which_rtp):
-        r_ind = r_th_phi_ind[0]
-        th_ind = r_th_phi_ind[1]
-        phi_ind = r_th_phi_ind[2]
-
+    for i, key in enumerate(which_rtp):
         lower_triangle_bool = torch.tril(torch.ones(r_matrix.shape), diagonal = -1).bool()
 
-        r_mask_lower = r_mask[r_ind] & lower_triangle_bool
-        theta_mask_lower = theta_mask[th_ind] & lower_triangle_bool
-        phi_mask_lower = phi_mask[phi_ind] & lower_triangle_bool
+        rtp_mask = maskDict[key] & lower_triangle_bool
 
-        r = r_matrix[r_mask_lower]
-        theta = theta_matrix[theta_mask_lower]
-        phi = phi_matrix[phi_mask_lower]
-
-        r = r.unsqueeze(-1)
-        theta = theta.unsqueeze(-1)
-        phi = phi.unsqueeze(-1)
-
-        print(r.shape, theta.shape, phi.shape)
+        r = r_matrix[rtp_mask].unsqueeze(-1)
+        theta = theta_matrix[rtp_mask].unsqueeze(-1)
+        phi = phi_matrix[rtp_mask].unsqueeze(-1)
 
         rtp = torch.cat((r, theta, phi), dim = -1)
 
-        average_xyz[j] = spherical2cart(rtp).mean(dim = 0)
-        print(average_xyz[j])
-
-    print(average_xyz)
+        xyz = spherical2cart(rtp)
+        average_xyz[i] = xyz.mean(dim = 0)
+        
 
     #initizlize cutoff (rarely used, but can be useful for large systems with high resolution)
-    if use_cutoff:
-        cutoff = torch.max(uncertainty) * 3
-    else:
-        cutoff = None
+    cutoff = torch.max(uncertainty) * 3
+
+    #filter out any vectors that are the negative of another vector
+    for i in range(n_rtp):
+        for j in range(i+1, 3):
+            if torch.sum(torch.abs(average_xyz[i] + average_xyz[j])) < 1e-5:
+                average_xyz[j] = torch.tensor([np.nan, np.nan, np.nan])
+
 
     print('Calculating kernel RAAC')
     RAAC = torch.zeros((n_r_bins, n_theta_bins, n_phi_bins))
-    for rtp_ind, xyz in zip(which_rtp, average_xyz):
+    for rtp_ind, displacement in zip(which_rtp, average_xyz):
         r_ind = rtp_ind[0]
         th_ind = rtp_ind[1]
         phi_ind = rtp_ind[2]
-        displacement = xyz
-        print(rtp, displacement)
+
         RAAC[r_ind, th_ind, phi_ind] += autocorrelation(data, uncertainty, atom_types, displacement, kernel = kernel, cutoff = cutoff)
  
-
-    #adf png
+    #return a list of all maxima in the RAAC
+    print('Finding top 3 maxima of RAAC')
     candidates = find_local_max(RAAC)
-    peak_val = RAAC[candidates[:, 0], candidates[:, 1], candidates[:, 2]]
-    top3_ac, top3_peak_ind = torch.topk(peak_val, 3)
-    top_3_tot_ind = candidates[top3_peak_ind]
 
-    r = r_bins[top_3_tot_ind[:, 0]]
-    theta = th_bins[top_3_tot_ind[:, 1]]
-    phi = phi_bins[top_3_tot_ind[:, 2]]
+    #get the values of RAAC at those peaks
+    n_local_max = len(candidates)
+    peak_val = torch.zeros(n_local_max)
+    for i in range(n_local_max):
+        peak_val[i] = RAAC[tuple(candidates[i])]
 
-    r = r.unsqueeze(-1)
-    theta = theta.unsqueeze(-1)
-    phi = phi.unsqueeze(-1)
+    #get the top 3 peaks from the RAAC
+    top3_RAAC, top3_peak_ind = torch.topk(peak_val, 3)
 
-    output = torch.cat((r, theta, phi), dim = -1)
+    #get the xyz of those peaks
+    top3_xyz = torch.zeros(3, 3)
+    for i in range(3):
+        rtp = candidates[top3_peak_ind[i]]
+        key = tuple(rtp.tolist())
+        which_rtp_ind = list(which_rtp).index(key)
+        top3_xyz[i] = average_xyz[which_rtp_ind]
 
-    return output, top3_ac
+    output = top3_xyz
+
+    return output, top3_RAAC
 
 def spherical2cart(x):
     """
@@ -225,6 +215,7 @@ def spherical2cart(x):
     r = x[:, 0]
     theta = x[:, 1]
     phi = x[:, 2]
+
     x = r * np.sin(theta) * np.cos(phi)
     y = r * np.sin(theta) * np.sin(phi)
     z = r * np.cos(theta)
@@ -266,7 +257,7 @@ def cart2spherical(r):
     return output
 
 
-def theta_angle_matrix(data):
+def phi_angle_matrix(data):
     """
     atoms x atoms angle matrix: from 1, 0, 0 in the xy plane
     """
@@ -288,7 +279,7 @@ def theta_angle_matrix(data):
 
     return torch.acos(cos_theta) * sign_y
 
-def phi_angle_matrix(data):
+def theta_angle_matrix(data):
     """
     atoms x atoms angle matrix: angle above xy plane
     """
@@ -413,6 +404,3 @@ def create_supercell(data: torch.tensor, lattice: torch.tensor, n: int):
                 supercell[ind:ind + n_atoms] = data + displacement[None, :]
 
     return supercell
-
-
-

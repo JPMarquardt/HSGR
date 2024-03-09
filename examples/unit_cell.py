@@ -58,11 +58,9 @@ if __name__ == '__main__':
         uncertainty = uncertainty.to(device)
         ohe_types = ohe_types.to(device)
 
-        spherical, auto_corr = RA_autocorrelation(coords, uncertainty = uncertainty, atom_types = ohe_types, **kwargs)
-        cart = spherical2cart(spherical)
+        cart, auto_corr = RA_autocorrelation(coords, uncertainty = uncertainty, atom_types = ohe_types, **kwargs)
 
-        print(f'Spherical: {spherical}')
-        print(f'Cartesian: {cart}')
+        print(f'Cartestian: {cart}')
         print(f'Lattice: {lattice}')
         loss = 0
         for j in range(3):
