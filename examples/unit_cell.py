@@ -39,7 +39,7 @@ if __name__ == '__main__':
                   'n_theta_bins': 40, 'n_phi_bins': 40, 
                   'kernel': 'gaussian', 
                   'use_cutoff': True}
-        data_point = data[i][0]
+        data_point = data[i+2][0]
 
         n = math.floor((7000/data_point.numbers.shape[0])**(1/3))
         coords = data_point.positions

@@ -25,16 +25,11 @@ import gsd.hoomd
 
 """
 Hyperparameters:
-- n_r_bins: number of radial bins
 - r_max_mult: number to multiply the smallest radius by to get maximum radial distance
+- n_r_bins: number of radial bins
 - n_theta_bins: number of angular bins
 - n_phi_bins: number of azimuthal bins
-- n_space_bins: number of bins in space
-- kernel: kernel to use for the autocorrelation
-    - type: type of kernel
-    - sigma: standard deviation of the kernelana
-- n_angle_max: number of angles to consider in autocorrelation
-- n_radial_max: number of radial distances to consider in autocorrelation
+- kernel: type of kernel
 """
 
 
@@ -44,7 +39,6 @@ def RA_autocorrelation(data,
                        n_theta_bins: int = 20, 
                        n_phi_bins: int = 20, 
                        kernel: str = 'gaussian',
-                       use_cutoff: bool = False,
                        **kwargs):
     """
     Compute the autocorrelation spatial radial x angular function of the rdfs
@@ -96,6 +90,7 @@ def RA_autocorrelation(data,
     phi_bins = torch.linspace(phi_min, phi_max, n_phi_bins)
 
     #masks
+    #maybe try onehot enconding to reduce space complexity
     maskDict = {}
     r_mask = torch.zeros((n_r_bins, r_matrix.shape[0], r_matrix.shape[1], n_types), dtype = torch.bool)
     theta_mask = torch.zeros((n_theta_bins, r_matrix.shape[0], r_matrix.shape[1], n_types), dtype = torch.bool)
@@ -142,6 +137,7 @@ def RA_autocorrelation(data,
     which_rtp = maskDict.keys()
     n_rtp = len(which_rtp)
     average_xyz = torch.zeros((n_rtp, 3))
+    print(f'Found {n_rtp} candidate vectors')
 
     print('Calculating averaged peaks')
     for i, key in enumerate(which_rtp):
@@ -164,10 +160,9 @@ def RA_autocorrelation(data,
 
     #filter out any vectors that are the negative of another vector
     for i in range(n_rtp):
-        for j in range(i+1, 3):
+        for j in range(i+1, n_rtp):
             if torch.sum(torch.abs(average_xyz[i] + average_xyz[j])) < cutoff:
                 average_xyz[j] = torch.tensor([np.nan, np.nan, np.nan])
-
 
     print('Calculating kernel RAAC')
     RAAC = torch.zeros((n_r_bins, n_theta_bins, n_phi_bins))
