@@ -91,48 +91,16 @@ def RA_autocorrelation(data,
 
     #masks
     #maybe try onehot enconding to reduce space complexity
-    maskDict = {}
-    r_mask = torch.zeros((n_r_bins, r_matrix.shape[0], r_matrix.shape[1], n_types), dtype = torch.bool)
-    theta_mask = torch.zeros((n_theta_bins, r_matrix.shape[0], r_matrix.shape[1], n_types), dtype = torch.bool)
-    phi_mask = torch.zeros((n_phi_bins, r_matrix.shape[0], r_matrix.shape[1], n_types), dtype = torch.bool)
-
     #calculate masks for each of the atom types
     print('Calculating RDF and ADF masks')
-    for r_ind, r in enumerate(r_bins):
-        r_new = r - dr/2
-        r_mat = (r_matrix > r_new) & (r_matrix <= r_new + dr)
-        r_mask[r_ind] = r_mat
-
-    for th_ind, th in enumerate(th_bins):
-        th_new = th
-        th_mat = (theta_matrix > th_new) & (theta_matrix <= th_new + dth)
-        theta_mask[th_ind] = th_mat
-
-    for phi_ind, phi in enumerate(phi_bins):
-        phi_new = phi
-        phi_mat = (phi_matrix > phi_new) & (phi_matrix <= phi_new + dphi)
-        phi_mask[phi_ind] = phi_mat
+    r_mask = multi_mask(r_matrix, r_bins, dr)
+    t_mask = multi_mask(theta_matrix, th_bins, dth)
+    p_mask = multi_mask(phi_matrix, phi_bins, dphi)
 
     print('Calculating RADF')
     #caulcuate RADF
-    for r_ind, r_mask_i in tqdm(enumerate(r_mask)):
-        if check_mask_zeros(r_mask_i):
-            continue
 
-        for th_ind, th_mask_i in enumerate(theta_mask):
-            r_th_mask = r_mask_i & th_mask_i
-
-            if check_mask_zeros(r_th_mask):
-                continue
-            
-            for phi_ind, phi_mask_i in enumerate(phi_mask):
-                r_th_phi = r_th_mask & phi_mask_i
-                
-                if check_mask_zeros(r_th_phi):
-                    continue
-
-                hash_key = (r_ind, th_ind, phi_ind)
-                maskDict[hash_key] = r_th_phi
+    maskDict = masks2RADF(r_mask, t_mask, p_mask)
 
     which_rtp = maskDict.keys()
     n_rtp = len(which_rtp)
@@ -171,7 +139,7 @@ def RA_autocorrelation(data,
         th_ind = rtp_ind[1]
         phi_ind = rtp_ind[2]
 
-        RAAC[r_ind, th_ind, phi_ind] += autocorrelation(data, uncertainty, atom_types, displacement, kernel = kernel, cutoff = cutoff)
+        RAAC[r_ind, th_ind, phi_ind] = autocorrelation(data, uncertainty, atom_types, displacement, kernel = kernel, cutoff = cutoff)
  
     #return a list of all maxima in the RAAC
     print('Finding top 3 maxima of RAAC')
@@ -253,3 +221,43 @@ def autocorrelation(data: torch.tensor,
         integral = old_prefactor * exponential_prefactor * new_integral
 
     return torch.sum(integral)
+
+def multi_mask(valueXtype: torch.tensor, bins: torch.tensor, dx: float):
+    """
+    Compute the mask a value and 
+    """
+    n_bins = bins.shape[0]
+    x_mask = torch.zeros((n_bins, valueXtype.shape[0], valueXtype.shape[1], valueXtype.shape[2]), dtype = torch.bool)
+    for x_ind, x in enumerate(bins):
+        x_new = x - dx/2
+        x_mat = (valueXtype > x_new) & (valueXtype <= x_new + dx)
+        x_mask[x_ind] = x_mat
+
+    return x_mask
+
+def masks2RADF(r_mask: torch.tensor, t_mask: torch.tensor, p_mask: torch.tensor):
+    """
+    Compute the Radial Angular Distribution Function (RADF) from the masks
+    """
+
+    maskDict = {}
+    for r_ind, r_mask_i in tqdm(enumerate(r_mask)):
+        if check_mask_zeros(r_mask_i):
+            continue
+
+        for th_ind, th_mask_i in enumerate(t_mask):
+            r_th_mask = r_mask_i & th_mask_i
+
+            if check_mask_zeros(r_th_mask):
+                continue
+            
+            for phi_ind, p_mask_i in enumerate(p_mask):
+                r_th_phi = r_th_mask & p_mask_i
+                
+                if check_mask_zeros(r_th_phi):
+                    continue
+
+                hash_key = (r_ind, th_ind, phi_ind)
+                maskDict[hash_key] = r_th_phi
+
+    return maskDict
