@@ -178,6 +178,7 @@ def autocorrelation(data: torch.tensor,
     """
     n_atoms = data.shape[0]
 
+    #make the displacement the same shape as the data so they can be added
     x0 = data[None, :, :].repeat(n_atoms, 1, 1)
     x1 = data[:, None, :].repeat(1, n_atoms, 1)
     d = displacement.repeat(n_atoms**2, 1).view(n_atoms, n_atoms, 3)
@@ -200,6 +201,12 @@ def autocorrelation(data: torch.tensor,
     k0 = 1 / (2 * sigma0 ** 2)
     k1 = 1 / (2 * sigma1 ** 2)
 
+    type0 = atom_types.bool()[None, :, :].repeat(n_atoms, 1, 1)
+    type1 = atom_types.bool()[:, None, :].repeat(1, n_atoms, 1)
+    type_mask = type0 & type1
+    type_mask = type_mask.sum(dim = -1) > 0
+    type_matrix = torch.where(type_mask, 1, -1)[mask.squeeze()]
+
     if kernel == 'gaussian':
         #compute the coefficients of the quadratic equation
         a = k0 + k1
@@ -218,7 +225,7 @@ def autocorrelation(data: torch.tensor,
         new_integral = torch.squeeze(new_integral)
 
         #compute the integral
-        integral = old_prefactor * exponential_prefactor * new_integral
+        integral = old_prefactor * exponential_prefactor * new_integral * type_matrix
 
     return torch.sum(integral)
 
