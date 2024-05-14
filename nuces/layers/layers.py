@@ -40,12 +40,15 @@ class SchnetConv(nn.Module):
         self.register_buffer('gamma', in_feats / (in_range[1] - in_range[0]))
         self.register_buffer('muk', torch.linspace(in_range[0], in_range[1], in_feats))
         
-        self.MLP = MLP(in_feats, out_feats)
+        self.FGN_MLP1 = MLP(in_feats, in_feats)
+        self.FGN_MLP2 = MLP(in_feats, in_feats)
+
+        self.IB_MLP = MLP(in_feats, out_feats)
 
     def basis_func(self, dist):
         return torch.exp(-self.gamma * (dist - self.muk)**2)
 
-    def message_func(self, edges):
+    def cfconv(self, edges):
         src_feat = edges.src['h']
         edge_feat = edges.data['feat']
         dist = edges.data[self.var]
@@ -53,16 +56,19 @@ class SchnetConv(nn.Module):
         cutoff = self.cutoff(dist)
         bf = self.basis_func(dist)
 
+        bf = self.FGN_MLP1(bf)
+        bf = self.FGN_MLP2(bf)
+
         return {'h': src_feat * edge_feat * bf * cutoff.unsqueeze(-1)}
 
     def reduce_func(self, nodes):
-        return {'h': torch.sum(nodes.mailbox['h'], dim=1)}
+        return {'h': torch.prod(nodes.mailbox['h'], dim=1)}
 
     def forward(self, g):
         g = g.local_var()
 
-        g.update_all(self.message_func, self.reduce_func)
-        out = self.MLP(g.ndata['h'])
+        g.update_all(self.cfconv, self.reduce_func)
+        out = self.IB_MLP(g.ndata['h'])
         return out
 
 class AlignnConv(nn.Module):
