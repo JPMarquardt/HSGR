@@ -7,7 +7,7 @@ from utils import SmoothCutoff, MLP
 
 class SchnetConv(nn.Module):
     """
-    Graph convolution layer from SchNet model
+    Graph convolution layer from SchNet model (adds edge features too)
     Inputs:
     - in_feats: int, input features
     - out_feats: int, output features
@@ -24,12 +24,12 @@ class SchnetConv(nn.Module):
         if cutoff in kwargs:
             cutoff = kwargs['cutoff']
             self.onset = cutoff.onset
-            self.cutoff = cutoff.cutoff
-            cutoff = SmoothCutoff(onset=self.onset, cutoff=self.cutoff)
+            self.max = cutoff.cutoff
+            self.cutoff = SmoothCutoff(onset=self.onset, cutoff=self.max)
         else:
             self.cutoff = SmoothCutoff()
             self.onset = 0.8
-            self.cutoff = 1.0
+            self.max = 1.0
 
         if var == 'd':
             in_range = (0, self.cutoff)
@@ -46,10 +46,14 @@ class SchnetConv(nn.Module):
         return torch.exp(-self.gamma * (dist - self.muk)**2)
 
     def message_func(self, edges):
-        src = edges.src['h']        
+        src_feat = edges.src['h']
+        edge_feat = edges.data['feat']
         dist = edges.data[self.var]
+
         cutoff = self.cutoff(dist)
-        return {'h': src * self.basis_func(dist) * cutoff.unsqueeze(-1)}
+        bf = self.basis_func(dist)
+
+        return {'h': src_feat * edge_feat * bf * cutoff.unsqueeze(-1)}
 
     def reduce_func(self, nodes):
         return {'h': torch.sum(nodes.mailbox['h'], dim=1)}

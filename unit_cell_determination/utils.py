@@ -36,9 +36,9 @@ def spherical2cart(x):
     theta = x[:, 1]
     phi = x[:, 2]
 
-    x = r * np.sin(theta) * np.cos(phi)
-    y = r * np.sin(theta) * np.sin(phi)
-    z = r * np.cos(theta)
+    x = r * torch.sin(theta) * torch.cos(phi)
+    y = r * torch.sin(theta) * torch.sin(phi)
+    z = r * torch.cos(theta)
 
     x = x.unsqueeze(-1)
     y = y.unsqueeze(-1)
@@ -87,7 +87,7 @@ def phi_angle_matrix(data):
 
     adjacent = data[None, :, 0] - data[:, None, 0]
 
-    sign_y = torch.sign(data[:, None, 1] - data[None, :, 1])
+    sign_y = torch.sign(data[None, :, 1] - data[:, None, 1])
     
     cos_theta = adjacent / hypotenuse
 

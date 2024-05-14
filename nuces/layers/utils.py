@@ -38,9 +38,3 @@ class SmoothCutoff(nn.Module):
         v[margin] = -rm**3 * (rm * (6.0 * rm - 15.0) + 10.0) + 1
 
         return v
-    
-cutoff = SmoothCutoff(0.8, 1)
-import matplotlib.pyplot as plt
-A = torch.linspace(-1.5, 1, 250)
-plt.plot(A, cutoff(A))
-plt.show()
