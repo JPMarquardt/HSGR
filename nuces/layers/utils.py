@@ -44,3 +44,15 @@ class SmoothCutoffCos(nn.Module):
         #v[margin] = -rm**3 * (rm * (6.0 * rm - 15.0) + 10.0) + 1
 
         return v
+    
+
+class radial_basis_func(nn.Module):
+    def __init__(self, in_feats: int = 64, in_range: tuple[float, float] = None, **kwargs):
+        super(radial_basis_func, self).__init__()
+        
+        #basis function parameters
+        self.register_buffer('gamma', in_feats / (in_range[1] - in_range[0]))
+        self.register_buffer('muk', torch.linspace(in_range[0], in_range[1], in_feats))
+
+    def forward(self, dist):
+        return torch.exp(-self.gamma * (dist - self.muk)**2)
