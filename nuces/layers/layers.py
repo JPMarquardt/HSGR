@@ -21,6 +21,7 @@ class SchnetConv(nn.Module):
         super(SchnetConv, self).__init__()
         self.var = var
 
+        #cutoff function
         if cutoff in kwargs:
             cutoff = kwargs['cutoff']
             self.onset = cutoff.onset
@@ -31,18 +32,21 @@ class SchnetConv(nn.Module):
             self.onset = 0.8
             self.max = 1.0
 
+        #input range
         if var == 'd':
             in_range = (0, self.cutoff)
         elif var == 'angle':
             in_range = (-self.cutoff, self.cutoff)
 
-
+        #basis function parameters
         self.register_buffer('gamma', in_feats / (in_range[1] - in_range[0]))
         self.register_buffer('muk', torch.linspace(in_range[0], in_range[1], in_feats))
         
+        #filter generation network
         self.FGN_MLP1 = MLP(in_feats, in_feats)
         self.FGN_MLP2 = MLP(in_feats, in_feats)
 
+        #interaction block
         self.IB_MLP = MLP(in_feats, out_feats)
 
     def basis_func(self, dist):
