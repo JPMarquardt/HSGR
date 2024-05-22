@@ -3,7 +3,7 @@ import torch
 import dgl
 import dgl.function as fn
 import torch.nn as nn
-from utils import SmoothCutoff, MLP
+from utils import SmoothCutoff, MLP, radial_basis_func
 
 class SchnetConv(nn.Module):
     """
@@ -17,30 +17,19 @@ class SchnetConv(nn.Module):
     Outputs:
     - out: torch.tensor, output features
     """
-    def __init__(self, in_feats: int = 64, out_feats: int = 64, var: str = 'd', **kwargs):
+    def __init__(self, in_feats: int = 64, out_feats: int = 64, var: str = 'd', cutoff: bool = True, in_range: tuple[float, float] = None, **kwargs):
         super(SchnetConv, self).__init__()
         self.var = var
 
         #cutoff function
-        if cutoff in kwargs:
-            cutoff = kwargs['cutoff']
-            self.onset = cutoff.onset
-            self.max = cutoff.cutoff
-            self.cutoff = SmoothCutoff(onset=self.onset, cutoff=self.max)
+        if cutoff:
+            max = in_range[1]
+            self.cutoff = SmoothCutoff(cutoff=max)
         else:
-            self.cutoff = SmoothCutoff()
-            self.onset = 0.8
-            self.max = 1.0
+            self.cutoff = SmoothCutoff(cutoff=False)
 
-        #input range
-        if var == 'd':
-            in_range = (0, self.cutoff)
-        elif var == 'angle':
-            in_range = (-self.cutoff, self.cutoff)
-
-        #basis function parameters
-        self.register_buffer('gamma', in_feats / (in_range[1] - in_range[0]))
-        self.register_buffer('muk', torch.linspace(in_range[0], in_range[1], in_feats))
+        #initialize radial basis function
+        self.basis_func = radial_basis_func(in_feats, in_range)
         
         #filter generation network
         self.FGN_MLP1 = MLP(in_feats, in_feats)
@@ -48,9 +37,6 @@ class SchnetConv(nn.Module):
 
         #interaction block
         self.IB_MLP = MLP(in_feats, out_feats)
-
-    def basis_func(self, dist):
-        return torch.exp(-self.gamma * (dist - self.muk)**2)
 
     def cfconv(self, edges):
         src_feat = edges.src['h']
