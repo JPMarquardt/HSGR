@@ -5,6 +5,8 @@ import dgl.function as fn
 import torch.nn as nn
 import numpy as np
 
+from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
+
 class MLP(nn.Module):
     def __init__(self, in_feats: int = 64, out_feats: int = 64):
         super(MLP, self).__init__()
@@ -55,7 +57,7 @@ class SmoothCutoff(nn.Module):
     
 
 class radial_basis_func(nn.Module):
-    def __init__(self, in_feats: int = 64, in_range: tuple[float, float] = None, **kwargs):
+    def __init__(self, in_feats: int = 64, in_range: Tuple[float, float] = None, **kwargs):
         super(radial_basis_func, self).__init__()
 
         #basis function parameters
@@ -65,19 +67,86 @@ class radial_basis_func(nn.Module):
     def forward(self, dist):
         return torch.exp(-self.gamma * (dist - self.muk)**2)
     
-class color_invariant_embedding(nn.Module):
-    def __init__(self, max_color: int = 10):
-        super(color_invariant_embedding, self).__init__()
-        self.register_parameter('ii', torch.tensor([1.0], requires_grad=True))
-        self.register_parameter('ij', torch.tensor([0.1], requires_grad=True))
-        
-        self.max_color = max_color
 
-    def forward(self, color, n_color):
-        ii = self.ii * torch.nn.functional.one_hot(color, self.max_color)
-        ij = self.ij * torch.ones_like(n_color)
-        
-        z = torch.zeros_like(self.max_color - n_color)
-        ij = torch.cat([ij, z], dim=-1)
+"""
+class nplet_embedding(nn.Module):
 
-        return ii + ij
+create a dictionary on every node.
+add the color of that node to the dictionary
+with a value of n and (in the original case 0)
+*
+transfer that node's dictionary to its edges and add the
+destination node's color to the dictionary with a value of n+1
+turn this graph into an edge graph and repeat
+from * with the new node being the previous edge
+and the new edge being the previous triplet
+"""
+
+class color_invariant_duplet(nn.Module):
+    def __init__(self, in_feats: int = 64):
+        super(color_invariant_duplet, self).__init__()
+
+        self.e1 = nn.Embedding(2, in_feats)
+
+    def comparison(self, edges):
+        src = edges.src['h']
+        dst = edges.dst['h']
+
+        return {'h': src == dst}
+    
+    def forward(self, g):
+        g = g.local_var()
+
+        g.apply_edges(self.comparison)
+
+        return self.e1(g.edata['h'])
+    
+class color_invariant_triplet(nn.Module):
+    def __init__(self, in_feats: int = 64):
+        super(color_invariant_triplet, self).__init__()
+
+        self.e1 = nn.Embedding(2, in_feats)
+        self.e2 = nn.Embedding(2, in_feats)
+        self.e3 = nn.Embedding(2, in_feats)
+
+    def send_h_src(self, edges):
+        """Compute bond angle cosines from bond displacement vectors."""
+        # line graph edge: (a, b), (b, c)
+        # `a -> b -> c`
+        # this sends neighbor information to each edge
+        k_src = edges.src['h']
+        k_dst = edges.dst['h']
+
+        return {"h_src": k_src, "h_dst": k_dst}
+    
+    def comparison3(self, edges):
+        # line graph edge: (a, b), (b, c)
+        # `a -> b -> c`
+        # this checks if the atomic number of b is in (a, c) and if c = a
+        # then it assigns a a symmetry value from 0 to 3
+        ha = edges.src['h_src']
+        hc = edges.dst['h_dst']
+        hb = edges.src['h_dst']
+
+        ha_eq_hc = ha == hc
+        ha_eq_hb = ha == hb
+        hc_eq_hb = hc == hb
+
+        return {'hac': ha_eq_hc, 'hab': ha_eq_hb, 'hbc': hc_eq_hb}
+    
+    def forward(self, g):
+        g, h = g
+
+        g = g.local_var()
+        h = h.local_var()
+
+        g.apply_edges(self.send_h_src)
+        h.ndata['h_src'] = g.edata['h_src']
+        h.ndata['h_dst'] = g.edata['h_dst']
+
+        h.apply_edges(self.comparison3)
+        hac = h.edata['hac']
+        hab = h.edata['hab']
+        hbc = h.edata['hbc']
+
+        return self.e1(hac) + self.e2(hab) + self.e3(hbc)
