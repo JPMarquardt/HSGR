@@ -4,6 +4,7 @@ import dgl
 import dgl.function as fn
 import torch.nn as nn
 from utils import SmoothCutoff, MLP, radial_basis_func
+from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
 
 class SchnetConv(nn.Module):
     """
@@ -17,7 +18,14 @@ class SchnetConv(nn.Module):
     Outputs:
     - out: torch.tensor, output features
     """
-    def __init__(self, in_feats: int = 64, out_feats: int = 64, var: str = 'd', cutoff: bool = True, in_range: tuple[float, float] = None, **kwargs):
+    def __init__(self, 
+                 in_feats: int = 64,
+                 radial_feats: int = 128,
+                 out_feats: int = 64, 
+                 var: str = 'd', 
+                 cutoff: bool = True, 
+                 in_range: tuple[float, float] = None, 
+                 **kwargs):
         super(SchnetConv, self).__init__()
         self.var = var
 
@@ -29,10 +37,10 @@ class SchnetConv(nn.Module):
             self.cutoff = SmoothCutoff(cutoff=False)
 
         #initialize radial basis function
-        self.basis_func = radial_basis_func(in_feats, in_range)
+        self.basis_func = radial_basis_func(radial_feats, in_range)
         
         #filter generation network
-        self.FGN_MLP1 = MLP(in_feats, in_feats)
+        self.FGN_MLP1 = MLP(radial_feats, in_feats)
         self.FGN_MLP2 = MLP(in_feats, in_feats)
 
         #interaction block
@@ -40,14 +48,10 @@ class SchnetConv(nn.Module):
 
     def cfconv(self, edges):
         src_feat = edges.src['h']
-        edge_feat = edges.data['feat']
-        dist = edges.data[self.var]
+        edge_feat = edges.data['h']
 
-        cutoff = self.cutoff(dist)
-        bf = self.basis_func(dist)
-
-        bf = self.FGN_MLP1(bf)
-        bf = self.FGN_MLP2(bf)
+        cutoff = edges.data['cutoff']
+        bf = edges.data['bf']
 
         return {'h': src_feat * edge_feat * bf * cutoff.unsqueeze(-1)}
 
@@ -56,6 +60,18 @@ class SchnetConv(nn.Module):
 
     def forward(self, g):
         g = g.local_var()
+
+        e_var = g.edata[self.var]
+
+        if g.edata.get('cutoff') is None:
+            bf = self.basis_func(e_var)
+            cutoff = self.cutoff(e_var)
+
+            g.edata['bf'] = bf * cutoff
+            g.edata['cutoff'] = cutoff
+
+        bf = self.FGN_MLP1(bf)
+        bf = self.FGN_MLP2(bf)
 
         g.update_all(self.cfconv, self.reduce_func)
         out = self.IB_MLP(g.ndata['h'])
@@ -79,7 +95,7 @@ class AlignnConv(nn.Module):
         self.r_conv = SchnetConv(in_feats, out_feats, var='d', **kwargs)
         self.angle_conv = SchnetConv(in_feats, out_feats, var='angle', **kwargs)
 
-    def forward(self, g: tuple[dgl.DGLGraph, dgl.DGLGraph]):
+    def forward(self, g: Tuple[dgl.DGLGraph, dgl.DGLGraph]):
         g, h = g
 
         g = g.local_var()
