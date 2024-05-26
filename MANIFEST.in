@@ -1,0 +1,10 @@
+# Include all Python source files
+recursive-include HSGR *.py
+
+# Include all data files
+recursive-include your_package_name/data *
+
+# Exclude any compiled Python files
+global-exclude *.pyc
+global-exclude *.pyo
+global-exclude __pycache__
