@@ -5,3 +5,4 @@ Models
 *.pyc
 *submit*
 *.sh
+**egg-info**
