@@ -6,3 +6,4 @@ Models
 *submit*
 *.sh
 **egg-info**
+**pycache**
