@@ -29,7 +29,6 @@ class Alignn(nn.Module):
         )
 
         self.edge_embedding = color_invariant_duplet(hidden_features)
-
         self.triplet_embedding = color_invariant_triplet(hidden_features)
 
         self.layers = nn.ModuleList()
@@ -38,7 +37,23 @@ class Alignn(nn.Module):
             self.layers.append(SchnetConv(hidden_features, hidden_features))
         self.fc = nn.Linear(hidden_features, num_classes)
 
-    def forward(self, g, x):
+    def get_bf_cutoff(self, g) -> None:
+        if g.edata.get('cutoff') is None:
+            bf = self.basis_func()
+            cutoff = self.cutoff()
+
+            g.edata['bf'] = bf * cutoff
+            g.edata['cutoff'] = cutoff
+        return 
+
+    def forward(self, g):
+        g, h = g
+
+        self.get_bf_cutoff(g)
+        self.get_bf_cutoff(h)
+
+        g = g.local_var()
+        h = h.local_var()
 
         for layer in self.layers:
             x = F.relu(layer(g, x))
@@ -65,7 +80,19 @@ class SchNet(nn.Module):
             self.layers.append(SchnetConv(hidden_features, hidden_features))
         self.fc = nn.Linear(hidden_features, num_classes)
 
-    def forward(self, g, x):
+    def get_bf_cutoff(self, g) -> None:
+        if g.edata.get('cutoff') is None:
+            bf = self.basis_func()
+            cutoff = self.cutoff()
+
+            g.edata['bf'] = bf * cutoff
+            g.edata['cutoff'] = cutoff
+        return 
+
+    def forward(self, g):
+        self.get_bf_cutoff(g)
+
+        g = g.local_var()
 
         for layer in self.layers:
             x = F.relu(layer(g, x))
