@@ -1,7 +1,7 @@
 import torch
 from sinn.noise.utils import dist_matrix, find_min_dist
 
-def gaussian_noise(tensor, ratio=0.1):
+def gaussian_noise(tensor, noise):
     """Add Gaussian noise to a tensor.
 
     Args:
@@ -13,22 +13,11 @@ def gaussian_noise(tensor, ratio=0.1):
     """
     min_dist = find_min_dist(tensor)
 
-    return tensor + torch.randn(tensor.size()) * min_dist * ratio
+    return tensor + noise * min_dist
+    
+def noise_regression(tensor):
+    noise_stdev = torch.rand()
+    noise = torch.randn(tensor.shape) * noise_stdev
 
-def check_gaussian_noise(tensor, noisy_tensor):
-    """Check that the Gaussian noise is added correctly.
-
-    Args:
-        tensor (torch.Tensor): Input tensor.
-        noise (torch.Tensor): Gaussian noise tensor.
-
-    Returns:
-        torch.Tensor: Noisy tensor.
-    """
-    #????
-    raise NotImplementedError()
-
-    if is_ok:
-        return True
-    else:
-        return False
+    return (noise_stdev, noisy_tensor)
+    
