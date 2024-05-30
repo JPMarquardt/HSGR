@@ -12,6 +12,7 @@ spg = ('225',)
 categorical_filter = ([True],['spg_number'],[spg])
 
 batch_size = 8
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 5
 noise = lambda x: 1 - torch.sqrt(1 - x**2)
@@ -38,7 +39,7 @@ train_model(model = model,
             batch_size = 8,
             model_name=model_name,
             save_path = model_path,
-            device = 'cpu')
+            device = device)
 
 
 """
