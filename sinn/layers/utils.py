@@ -44,7 +44,7 @@ class SmoothCutoff(nn.Module):
         aboveCutOff = r2 > cutoff2
         belowCutOff = ~aboveCutOff
 
-        rm = (r[belowCutOff].abs() - self.onset) / (self.cutoff - self.onset)
+        rm = r[belowCutOff].abs() / self.cutoff
 
         v[aboveCutOff] = 0.0
         v[belowCutOff] = 0.5 * (1 + torch.cos(rm * self.pi))
@@ -61,10 +61,10 @@ class radial_basis_func(nn.Module):
         super(radial_basis_func, self).__init__()
 
         #basis function parameters
-        self.register_buffer('gamma', in_feats / (in_range[1] - in_range[0]))
-        self.register_buffer('muk', torch.linspace(in_range[0], in_range[1], in_feats))
+        self.register_buffer('gamma', torch.tensor(in_feats / (in_range[1] - in_range[0])))
+        self.register_buffer('muk', torch.linspace(in_range[0], in_range[1], in_feats).unsqueeze(0))
 
     def forward(self, dist):
-        return torch.exp(-self.gamma * (dist - self.muk)**2)
+        return torch.exp(-self.gamma * (dist.unsqueeze(1) - self.muk)**2)
     
 

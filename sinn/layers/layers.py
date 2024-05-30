@@ -44,7 +44,8 @@ class SchnetConv(nn.Module):
         self.FGN_MLP2 = MLP(in_feats, in_feats)
 
         #interaction block
-        self.IB_MLP = MLP(in_feats, out_feats)
+        self.IB_MLP1 = MLP(in_feats, out_feats)
+        self.IB_MLP2 = MLP(in_feats, in_feats)
 
     def cfconv(self, edges):
         src_feat = edges.src['h']
@@ -56,26 +57,30 @@ class SchnetConv(nn.Module):
         return {'h': src_feat * edge_feat * bf * cutoff.unsqueeze(-1)}
 
     def reduce_func(self, nodes):
-        return {'h': torch.prod(nodes.mailbox['h'], dim=1)}
+        return {'h': torch.sum(nodes.mailbox['h'], dim=1)}
 
-    def forward(self, g):
+    def forward(self, 
+                g: dgl.DGLGraph,
+                ):
         g = g.local_var()
 
         e_var = g.edata[self.var]
 
         if g.edata.get('cutoff') is None:
             bf = self.basis_func(e_var)
-            cutoff = self.cutoff(e_var)
+            cutoff = self.cutoff(e_var).unsqueeze(-1)
 
-            g.edata['bf'] = bf * cutoff
-            g.edata['cutoff'] = cutoff
+            bf = bf * cutoff
+        else:
+            bf = g.edata['bf']
+            cutoff = g.edata['cutoff']
 
         bf = self.FGN_MLP1(bf)
         bf = self.FGN_MLP2(bf)
 
         g.update_all(self.cfconv, self.reduce_func)
-        out = self.IB_MLP(g.ndata['h'])
-        return out
+        out = torch.nn.SiLU(self.IB_MLP1(g.ndata['h']))
+        return self.IB_MLP2(out)
 
 class AlignnConv(nn.Module):
     """
@@ -95,7 +100,10 @@ class AlignnConv(nn.Module):
         self.r_conv = SchnetConv(in_feats, out_feats, var='d', **kwargs)
         self.angle_conv = SchnetConv(in_feats, out_feats, var='angle', **kwargs)
 
-    def forward(self, g: Tuple[dgl.DGLGraph, dgl.DGLGraph]):
+    def forward(self, 
+                g: dgl.DGLGraph,
+                h: dgl.DGLGraph,
+                ):
         g, h = g
 
         g = g.local_var()

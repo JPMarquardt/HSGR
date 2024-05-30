@@ -25,7 +25,7 @@ def compute_bond_cosines(edges):
     bond_cosine = torch.clamp(bond_cosine, -1, 1)
     # bond_cosine = torch.arccos((torch.clamp(bond_cosine, -1, 1)))
 
-    return {"cos": bond_cosine}
+    return {"angle": bond_cosine}
 
 def copy_d(edges):
     """Copy the bond distance from the original graph to the line graph."""
@@ -37,4 +37,4 @@ def compute_max_d(nodes):
 
 def compute_nd(edges):
     """Compute the normalized distance between two atoms."""
-    return {"nd": edges.data["d"] / edges.dst["max_d"]}
+    return {"d": edges.data["d"] / edges.dst["max_d"]}

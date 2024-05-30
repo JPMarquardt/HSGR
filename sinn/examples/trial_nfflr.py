@@ -47,7 +47,7 @@ if __name__ == "__main__":
     spg = {}
     for i in dataset['spg_number']:
         spg[i] = True
-    print(f'nspg = {len(spg)}')
+    print(f'nspg = {len(spg)}') 
     
     dataset = AtomsDataset(
         df = dataset,

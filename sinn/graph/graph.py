@@ -1,7 +1,9 @@
 import torch
 import dgl
 import numpy as np
+import nfflr
 
+from typing import Tuple
 from sinn.graph.utils import compute_dx, compute_bond_cosines, copy_d, compute_max_d, compute_nd
 
 def create_supercell(data: torch.tensor, n: int):
@@ -19,10 +21,16 @@ def create_supercell(data: torch.tensor, n: int):
 
     return supercell
 
-def lattice_plane_slicer(data: torch.tensor, miller_index: torch.tensor, n: int = 0):
+def lattice_plane_slicer(data: torch.Tensor, miller_index: torch.Tensor, n: int):
     """
     Slice the unit cell on lattice plane
     """
+    xeq0 = miller_index[0] != 0
+    yeq0 = miller_index[1] != 0
+    zeq0 = miller_index[2] != 0
+
+    if xeq0.int() + yeq0.int() + zeq0.int() < 2:
+        return data
 
     #prep miller index for normalization
     miller_index = miller_index.float()
@@ -31,28 +39,21 @@ def lattice_plane_slicer(data: torch.tensor, miller_index: torch.tensor, n: int 
     #normalize miller index so that the smallest component is 1
     mi_max = torch.max(nz_miller_index)
     miller_index = miller_index / mi_max
+    miller_index = miller_index.unsqueeze(0)
 
-    belowplane = torch.sum(data * miller_index, dim=1) < n
-    
-    xeq0 = miller_index[0] != 0
-    yeq0 = miller_index[1] != 0
-    zeq0 = miller_index[2] != 0
-
-    if xeq0.int() + yeq0.int() + zeq0.int() < 2:
-        return data
+    belowplane = torch.sum(data * miller_index, dim=0) < n
     
     #propagate in the direction of the vector with 1 because it lines up
     max_index = torch.argmax(nz_miller_index)
     propagation_vector = torch.zeros(3)
     propagation_vector[max_index] = n
-    print(propagation_vector)
 
-    belowplane = belowplane.unsqueeze(1)
+    belowplane = belowplane.unsqueeze(0)
     new_cell = torch.where(belowplane, data + propagation_vector, data)
 
     return new_cell
 
-def create_knn_graph(data: torch.tensor, k: int):
+def create_knn_graph(data: torch.Tensor, k: int, line_graph: bool = False):
     """
     Create a k-nearest neighbor graph with necessary edge features
     """
@@ -63,12 +64,15 @@ def create_knn_graph(data: torch.tensor, k: int):
     g.update_all(copy_d, compute_max_d)
     g.apply_edges(compute_nd)
 
-    tfm = dgl.LineGraph()
-    h = tfm(g)
-    h.apply_edges(compute_bond_cosines)
-
-    return (g, h)
-
+    if line_graph:
+        tfm = dgl.LineGraph()
+        h = tfm(g)
+        h.apply_edges(compute_bond_cosines)
+        return (g, h)
+    
+    else:
+        return g
+    
 if __name__ == "__main__":
     #verify the functions
 

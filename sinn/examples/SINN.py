@@ -1,6 +1,45 @@
-from sinn.dataset.dataset import FilteredAtomsDataset, collate_spg
-from sinn.noise.gaussian_noise import gaussian_noise
+import torch.nn as nn
+import torch
+
+from sinn.dataset.dataset import FilteredAtomsDataset, collate_noise
 from sinn.model.model import SchNet
+from sinn.train.train import train_model, NoiseRegressionEval
+
+
+
+n_atoms = 2
+spg = ('225',)
+categorical_filter = ([True],['spg_number'],[spg])
+
+batch_size = 8
+
+k = 5
+noise = lambda x: 1 - torch.sqrt(1 - x**2)
+pre_eval_func = NoiseRegressionEval(noise = noise, k = k)
+
+dataset = FilteredAtomsDataset(source = "dft_3d",
+                        n_unique_atoms = (True,n_atoms),
+                        categorical_filter = categorical_filter,
+                        transform=pre_eval_func,
+                        collate = collate_noise,
+                        ).dataset
+
+model_name = 'SchNet-AtomNoise-Spg225'
+model_path = 'models/24-05-29/'
+model = SchNet(num_classes=1, num_layers=3, hidden_features=64)
+loss_func = nn.MSELoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+train_model(model = model,
+            dataset = dataset,
+            loss_func = loss_func,
+            optimizer = optimizer,
+            n_epochs = 100,
+            batch_size = 2,
+            model_name=model_name,
+            save_path = model_path,
+            device = 'cpu')
+
 
 """
 Scale invariant neural network (SINN) for predicting space group of a crystal structure.
@@ -12,10 +51,8 @@ either
 
     data = manual_onehot_target(data)
 or
-    positives = add_small_noise(data)
-    negatives = add_large_noise(data)
-
-    data = merge(positives, negatives)
+    data = add_noise(data)
+    value = noise(data)
 
 data = graph_construction(data)
 train_data, test_data = split_data(data)
@@ -24,9 +61,3 @@ model = create_model()
 model = train_model(model, train_data)
 model = test_model(model, test_data)
 """
-
-dataset = FilteredAtomsDataset(
-    source='dft_3d',
-    n_unique_atoms=(True, 3),
-    categorical_filter=(('search', True, ['-']),)
-)

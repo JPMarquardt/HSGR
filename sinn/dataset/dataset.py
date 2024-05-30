@@ -13,9 +13,13 @@ class FilteredAtomsDataset():
                  source = "dft_3d",
                  n_unique_atoms: Tuple[bool, int] = None,
                  atom_types: Tuple[bool, str] = None,
-                 categorical_filter: Tuple[Tuple[bool], Tuple[str], Tuple[Tuple[Any]]] = None
+                 categorical_filter: Tuple[Tuple[bool], Tuple[str], Tuple[Tuple[Any]]] = None,
+                 transform: Callable = None,
+                 collate: Callable = None
                  ):
         """
+        A wrapper on the nfflr AtomsDataset to allow for filtering of the dataset
+
         source: which JARVIS dataset (or file) to take the datafrom
         arbitrary_feat: set atomic number to be numbers 1 to N where N is number of unique atoms. Recommended only use when n_unique_atoms is specified.
 
@@ -30,6 +34,9 @@ class FilteredAtomsDataset():
         categorical_filter: allows filtering of categorical variable such as spg etc. Inputs must be given as tuples to allow for multiple category filters
 
         """
+        self.transform = transform
+        self.collate = collate
+
         dataset = AtomsDataset(source)
         dataset = pd.DataFrame(dataset.df)
         print(f'Taking dataset with size {dataset.shape}')
@@ -39,7 +46,6 @@ class FilteredAtomsDataset():
             NotImplementedError()
 
         if n_unique_atoms:
-
             nAtomTypeList = []
             for search in dataset['search']:
                 nAtomTypeList.append(len(search.split('-')))
@@ -64,7 +70,10 @@ class FilteredAtomsDataset():
 
         print(f'Dataset reduced to size {dataset.shape}')
         self.df = dataset
-        return None
+        self.dataset = AtomsDataset(df = dataset,
+                                    transform = self.transform,
+                                    custom_collate_fn = self.collate)
+        return
     
 def arbitrary_feat(dataset):
     for datapoint in dataset:
@@ -81,7 +90,7 @@ def arbitrary_feat(dataset):
 
     return dataset
 
-def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
+def collate_general(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
     """Dataloader helper to batch graphs cross `samples`.
 
     Forces get collated into a graph batch
@@ -103,3 +112,13 @@ def collate_spg(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
     target_block = torch.stack(targets, 0)
     return dgl.batch(graphs), target_block
 
+def collate_noise(batch: Tuple[Tuple[torch.Tensor, dgl.DGLGraph]]):
+    """
+    Create a batch of DGLGraphs
+    """
+    batch, _ = zip(*batch)
+    g_list = [g for g, _ in batch]
+    target_list = [target for _, target in batch]
+    bg = dgl.batch(g_list)
+    target = torch.cat(target_list)
+    return bg, target

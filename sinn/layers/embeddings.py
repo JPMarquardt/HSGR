@@ -27,17 +27,16 @@ class color_invariant_duplet(nn.Module):
         self.e1 = nn.Embedding(2, in_feats)
 
     def comparison(self, edges):
-        src = edges.src['h']
-        dst = edges.dst['h']
+        src = edges.src['z']
+        dst = edges.dst['z']
 
         return {'h': src == dst}
     
-    def forward(self, g):
+    def forward(self, g: dgl.DGLGraph):
         g = g.local_var()
 
         g.apply_edges(self.comparison)
-
-        return self.e1(g.edata['h'])
+        return self.e1(g.edata['h'].int())
     
 class color_invariant_triplet(nn.Module):
     def __init__(self, in_feats: int = 64):
@@ -47,47 +46,50 @@ class color_invariant_triplet(nn.Module):
         self.e2 = nn.Embedding(2, in_feats)
         self.e3 = nn.Embedding(2, in_feats)
 
-    def send_h_src(self, edges):
+    def send_z_src(self, edges):
         """Compute bond angle cosines from bond displacement vectors."""
         # line graph edge: (a, b), (b, c)
         # `a -> b -> c`
         # this sends neighbor information to each edge
-        k_src = edges.src['h']
-        k_dst = edges.dst['h']
+        z_src = edges.src['z']
+        z_dst = edges.dst['z']
 
-        return {"h_src": k_src, "h_dst": k_dst}
+        return {"z_src": z_src, "z_dst": z_dst}
     
     def comparison3(self, edges):
         # line graph edge: (a, b), (b, c)
         # `a -> b -> c`
         # this checks if the atomic number of b is in (a, c) and if c = a
         # then it assigns a a symmetry value from 0 to 3
-        ha = edges.src['h_src']
-        hc = edges.dst['h_dst']
-        hb = edges.src['h_dst']
+        za = edges.src['z_src']
+        zc = edges.dst['z_dst']
+        zb = edges.src['z_dst']
 
-        ha_eq_hc = ha == hc
-        ha_eq_hb = ha == hb
-        hc_eq_hb = hc == hb
+        za_eq_zc = za == zc
+        za_eq_zb = za == zb
+        zc_eq_zb = zc == zb
 
-        return {'hac': ha_eq_hc, 'hab': ha_eq_hb, 'hbc': hc_eq_hb}
+        return {'zac': za_eq_zc, 'zab': za_eq_zb, 'zbc': zc_eq_zb}
     
-    def forward(self, g):
-        g, h = g
-
+    def forward(self, 
+                g: dgl.DGLGraph,
+                h: dgl.DGLGraph,
+                ):
+        
         g = g.local_var()
         h = h.local_var()
 
-        g.apply_edges(self.send_h_src)
-        h.ndata['h_src'] = g.edata['h_src']
-        h.ndata['h_dst'] = g.edata['h_dst']
+        g.apply_edges(self.send_z_src)
+        h.ndata['z_src'] = g.edata['z_src']
+        h.ndata['z_dst'] = g.edata['z_dst']
 
         h.apply_edges(self.comparison3)
-        hac = h.edata['hac']
-        hab = h.edata['hab']
-        hbc = h.edata['hbc']
+        zac = h.edata['zac']
+        zab = h.edata['zab']
+        zbc = h.edata['zbc']
+        h.edata['h'] = self.e1(zac) + self.e2(zab) + self.e3(zbc)
 
-        return self.e1(hac) + self.e2(hab) + self.e3(hbc)
+        return self.e1(zac) + self.e2(zab) + self.e3(zbc)
 
 class SchnetEmbedding(nn.Module):
     """
@@ -138,23 +140,26 @@ class SchnetEmbedding(nn.Module):
         return {'h': edge_feat * bf * cutoff.unsqueeze(-1)}
 
     def reduce_func(self, nodes):
-        return {'h': torch.prod(nodes.mailbox['h'], dim=1)}
+        return {'h': torch.sum(nodes.mailbox['h'], dim=1)}
 
-    def forward(self, g):
+    def forward(self, g: dgl.DGLGraph):
         g = g.local_var()
 
         e_var = g.edata[self.var]
 
         if g.edata.get('cutoff') is None:
             bf = self.basis_func(e_var)
-            cutoff = self.cutoff(e_var)
+            cutoff = self.cutoff(e_var).unsqueeze(-1)
 
-            g.edata['bf'] = bf * cutoff
-            g.edata['cutoff'] = cutoff
+            bf = bf * cutoff
+        else:
+            bf = g.edata['bf']
+            cutoff = g.edata['cutoff']
 
         bf = self.FGN_MLP1(bf)
         bf = self.FGN_MLP2(bf)
 
         g.update_all(self.cfconv, self.reduce_func)
+
         out = self.IB_MLP(g.ndata['h'])
         return out

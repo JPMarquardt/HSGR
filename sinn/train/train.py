@@ -1,12 +1,19 @@
 import torch
-import tqdm
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
+import nfflr
+
+from tqdm import tqdm
+from typing import Callable
+from copy import deepcopy
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 
-from dataset import arbitrary_feat
+from sinn.graph.graph import create_supercell, create_knn_graph, lattice_plane_slicer
+from sinn.dataset.dataset import collate_noise
+from sinn.noise.gaussian_noise import noise_regression
+
 
 def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = None, train=True, swa=False):
     """Runs one epoch of training or evaluation."""
@@ -30,7 +37,7 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = No
                 g = tuple(graph_part.to(device) for graph_part in g)
             else:
                 g = g.to(device)
-
+            print(g)
             y = y.to(device)
 
             pred = model(g)
@@ -66,7 +73,7 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = No
 
 def train_model(model,
                 dataset,
-                epochs,
+                n_epochs,
                 model_name,
                 device = 'cpu',
                 loss_func = nn.MSELoss(),
@@ -76,7 +83,7 @@ def train_model(model,
                 loss_graph = True,
                 MAE_graph = True,
                 scheduler = None,
-                use_arbitrary_feat = False,
+                pre_eval_func = None,
                 swa = False
                 ):
     
@@ -94,10 +101,13 @@ def train_model(model,
     final_average_MAE = []
     epoch_saved = []
 
-    for epoch in range(epochs):
+    base_dataset = dataset
 
-        if use_arbitrary_feat:
-            dataset = arbitrary_feat(dataset)
+    for epoch in range(n_epochs):
+
+        dataset = deepcopy(base_dataset)
+        if pre_eval_func:
+            dataset = pre_eval_func(dataset)
 
         train_loader = DataLoader(
             dataset,
@@ -169,3 +179,39 @@ def train_model(model,
             plt.legend(loc='upper right')
             plt.savefig(f'{save_path}{model_name}_MAE.png')
             plt.close()
+
+def noise_regression_prep(a: nfflr.Atoms, n_target_atoms: int, noise: Callable = None, k: int = 9):
+    coords = a.positions
+    lattice = a.cell
+    numbers = a.numbers
+
+    data = torch.matmul(coords, torch.inverse(lattice))
+
+    replicates = (n_target_atoms / data.size()[0]) ** (1/3)
+    replicates = int(replicates)
+
+    miller_index = torch.randint(0, 4, (3,))
+
+    if noise is None:
+        noise = lambda x: x
+
+    supercell = create_supercell(data, replicates)
+    sample_noise, supercell = noise_regression(supercell, noise)
+    supercell = lattice_plane_slicer(supercell, miller_index, replicates)
+    supercell = supercell @ lattice
+
+    g = create_knn_graph(supercell, k=k, line_graph=False)
+    numbers = numbers.repeat(replicates**3)
+    g.ndata['z'] = numbers
+
+    return g, sample_noise
+
+class NoiseRegressionEval(nn.Module):
+    def __init__(self, noise, k):
+        super(NoiseRegressionEval, self).__init__()
+        self.noise = noise
+        self.k = k
+
+    def forward(self, datapoint):
+        n_atoms = torch.randint(1, 5, (1,)) * 1000
+        return noise_regression_prep(datapoint, n_atoms, self.noise, self.k)
