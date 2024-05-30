@@ -105,7 +105,7 @@ class SchnetEmbedding(nn.Module):
     """
     def __init__(self, 
                  in_feats: int = 64,
-                 radial_feats: int = 128,
+                 radial_feats: int = 64,
                  out_feats: int = 64, 
                  var: str = 'd', 
                  cutoff: bool = True, 
@@ -131,35 +131,18 @@ class SchnetEmbedding(nn.Module):
         #interaction block
         self.IB_MLP = MLP(in_feats, out_feats)
 
-    def cfconv(self, edges):
-        edge_feat = edges.data['h']
-
-        cutoff = edges.data['cutoff']
-        bf = edges.data['bf']
-
-        return {'h': edge_feat * bf * cutoff.unsqueeze(-1)}
-
-    def reduce_func(self, nodes):
-        return {'h': torch.sum(nodes.mailbox['h'], dim=1)}
-
     def forward(self, g: dgl.DGLGraph):
         g = g.local_var()
 
-        e_var = g.edata[self.var]
-
-        if g.edata.get('cutoff') is None:
-            bf = self.basis_func(e_var)
-            cutoff = self.cutoff(e_var).unsqueeze(-1)
-
-            bf = bf * cutoff
-        else:
-            bf = g.edata['bf']
-            cutoff = g.edata['cutoff']
+        bf = g.edata['bf']
 
         bf = self.FGN_MLP1(bf)
         bf = self.FGN_MLP2(bf)
 
-        g.update_all(self.cfconv, self.reduce_func)
+        g.edata['h'] = bf * g.edata['h']
+
+        g.update_all(fn.copy_e('h', 'm'), fn.mean('m', 'h'))
 
         out = self.IB_MLP(g.ndata['h'])
         return out
+    

@@ -102,6 +102,8 @@ class SchNet(nn.Module):
         self.fc = nn.Linear(hidden_features, hidden_features)
         self.fc2 = nn.Linear(hidden_features, num_classes)
 
+        self.pooling = dgl.nn.AvgPooling()
+
     def get_bf_cutoff(self, g) -> None:
         if g.edata.get('cutoff') is None:
             bf = self.radial_embedding(g.edata['d'])
@@ -112,22 +114,21 @@ class SchNet(nn.Module):
         return 
 
     def forward(self, g):
-
+        g = g.local_var()
         self.get_bf_cutoff(g)
 
-        g = g.local_var()
         g.edata['h'] = self.edge_embedding(g)
-
-        x = self.node_embedding(g)
-        g.ndata['h'] = x
+        g.ndata['h'] = self.node_embedding(g)
 
         for layer in self.layers:
-            x += layer(g)
-            g.ndata['h'] = x
+            g.ndata['h'] = g.ndata['h'] + layer(g)
 
+        x = g.ndata['h']
         x = self.fc(x)
-        x = dgl.mean_nodes(g, x)
+        x = self.pooling(g, x)
         x = self.fc2(x)
+
         if self.kwargs.get('classification'):
             return F.log_softmax(x, dim=1)
-        else: return x
+        
+        else: return x.squeeze(1)

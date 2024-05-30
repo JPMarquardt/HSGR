@@ -68,10 +68,14 @@ def create_knn_graph(data: torch.Tensor, k: int, line_graph: bool = False):
         tfm = dgl.LineGraph()
         h = tfm(g)
         h.apply_edges(compute_bond_cosines)
-        return (g, h)
     
-    else:
-        return g
+    g.edata.pop('dx')
+    g.ndata.pop('x')
+    g.ndata.pop('max_d')
+
+    if line_graph: return (g, h)
+    return g
+    
     
 if __name__ == "__main__":
     #verify the functions

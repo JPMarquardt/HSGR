@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import nfflr
+import sys
 
 from tqdm import tqdm
 from typing import Callable
@@ -29,7 +30,7 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = No
         model.eval()
         grad = torch.no_grad()
         train_or_test = 'Test'
-
+    torch.autograd.set_detect_anomaly(True)
     with grad:
         for step, (g, y) in enumerate(tqdm(loader)):
 
@@ -37,7 +38,7 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = No
                 g = tuple(graph_part.to(device) for graph_part in g)
             else:
                 g = g.to(device)
-            print(g)
+
             y = y.to(device)
 
             pred = model(g)
