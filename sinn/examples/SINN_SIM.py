@@ -1,9 +1,12 @@
 import torch.nn as nn
 import torch
 
+from MDAnalysis.coordinates.GSD import GSDReader
+from MDAnalysis import Universe
+
 from sinn.dataset.dataset import FilteredAtomsDataset, collate_noise
 from sinn.model.model import SchNet, Alignn
-from sinn.train.train import train_model, NoiseRegressionEval
+from sinn.train.train import train_model, SimulatedNoiseRegressionEval
 
 
 
@@ -15,19 +18,15 @@ batch_size = 8
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 50
-noise = lambda x: 1 - torch.sqrt(1 - x**2)
-pre_eval_func = NoiseRegressionEval(noise = noise, k = k)
+pre_eval_func = SimulatedNoiseRegressionEval(k = k)
 
-dataset = FilteredAtomsDataset(source = "dft_3d",
-                        n_unique_atoms = (True,n_atoms),
-                        categorical_filter = categorical_filter,
-                        transform=pre_eval_func,
-                        collate = collate_noise,
-                        ).dataset
+dataset = Universe('./test_traj/trajectory_LS4_FP0.5_RN105_BL10_DL5.3_Th3P4.gsd')
+
+dataset = FilteredAtomsDataset(source = dataset).dataset
 
 model_name = 'SchNet-AtomNoise-Spg225'
 model_path = 'models/24-05-29/'
-model = SchNet(num_classes=1, num_layers=2, hidden_features=64, radial_features=128)
+model = SchNet(num_classes=1, num_layers=3, hidden_features=64, radial_features=128)
 loss_func = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
