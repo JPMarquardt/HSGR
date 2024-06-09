@@ -39,9 +39,9 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = No
             if isinstance(g, tuple):
                 g = tuple(graph_part.to(device) for graph_part in g)
             else:
-                g# = g.to(device)
+                g = g.to(device)
 
-            y #= y.to(device)
+            y = y.to(device)
             pred = model(g)
             loss = loss_func(pred, y)
             if train:
