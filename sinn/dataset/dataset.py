@@ -1,11 +1,14 @@
-from nfflr.data.dataset import AtomsDataset #maybe remove this dependence for maybe just JARVIS
+from nfflr.data.dataset import AtomsDataset, Atoms #maybe remove this dependence for maybe just JARVIS
+from jarvis.core.atoms import Atoms as jAtoms
 
 import torch
 import dgl
 import pandas as pd
 import random
+import numpy as np
 
-from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
+from MDAnalysis import Universe
+from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable, Iterable)
 
 
 class FilteredAtomsDataset():
@@ -15,7 +18,8 @@ class FilteredAtomsDataset():
                  atom_types: Tuple[bool, str] = None,
                  categorical_filter: Tuple[Tuple[bool], Tuple[str], Tuple[Tuple[Any]]] = None,
                  transform: Callable = None,
-                 collate: Callable = None
+                 collate: Callable = None,
+                 target: Optional[str] = None,
                  ):
         """
         A wrapper on the nfflr AtomsDataset to allow for filtering of the dataset
@@ -37,10 +41,18 @@ class FilteredAtomsDataset():
         self.transform = transform
         self.collate = collate
 
-        dataset = AtomsDataset(source)
-        dataset = pd.DataFrame(dataset.df)
-        print(f'Taking dataset with size {dataset.shape}')
+        if isinstance(source, str):
+            dataset = AtomsDataset(source)
+            dataset = pd.DataFrame(dataset.df)
 
+        elif isinstance(source, pd.DataFrame):
+            dataset = source
+
+        else:
+            dataset = universe2df(source)
+
+        
+        print(f'Taking dataset with size {dataset.shape}')
 
         if atom_types:
             NotImplementedError()
@@ -69,10 +81,10 @@ class FilteredAtomsDataset():
                 dataset.reset_index(inplace=True)
 
         print(f'Dataset reduced to size {dataset.shape}')
-        self.df = dataset
         self.dataset = AtomsDataset(df = dataset,
                                     transform = self.transform,
-                                    custom_collate_fn = self.collate)
+                                    custom_collate_fn = self.collate,
+                                    target = target)
         return
     
 def arbitrary_feat(dataset):
@@ -122,3 +134,42 @@ def collate_noise(batch: Tuple[Tuple[torch.Tensor, dgl.DGLGraph]]):
     bg = dgl.batch(g_list)
     target = torch.cat(target_list)
     return bg, target
+
+def universe2df(trajectory: Universe, target: Iterable = None) -> pd.DataFrame:
+    """
+    Convert a GSD file to a pandas dataframe
+    """
+    if target is None:
+        target = [0]*len(trajectory.trajectory)
+    
+    atom_types = trajectory.atoms.types
+    lattice_parameters = torch.tensor(trajectory.dimensions)
+    abc = lattice_parameters[:3]
+    angles = lattice_parameters[3:]
+
+    pi = torch.tensor(np.pi)
+    alpha = angles[0] * (pi / 180)
+    beta = angles[1] * (pi / 180)
+    gamma = angles[2] * (pi / 180)
+
+    cx = torch.cos(beta)
+    cy = (torch.cos(alpha) - torch.cos(beta) * torch.cos(gamma)) / torch.sin(gamma)
+    cz = torch.sqrt(1 - cx**2 - cy**2)
+
+    a1 = abc[0] * torch.tensor([1, 0, 0])
+    a2 = abc[1] * torch.tensor([torch.cos(gamma), torch.sin(gamma), 0])
+    a3 = abc[2] * torch.tensor([cx, cy, cz])
+
+    lattice_vectors = torch.stack([a1, a2, a3])
+
+    atoms_list = []
+    jid_list = []
+    for id, frame in enumerate(trajectory.trajectory):
+        coords = torch.tensor(frame.positions) + torch.sum(lattice_vectors, dim=0) / 2
+        atoms = Atoms(jAtoms(lattice_mat=lattice_vectors, coords=coords, elements=atom_types, cartesian=True))
+        atoms_list.append(atoms)
+        jid_list.append(id)
+
+
+    df = pd.DataFrame(list(zip(atoms_list,target,jid_list)), columns = ['atoms','target','jid'])
+    return df
