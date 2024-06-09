@@ -20,7 +20,7 @@ class SchnetConv(nn.Module):
     """
     def __init__(self, 
                  in_feats: int = 64,
-                 radial_feats: int = 64,
+                 radial_feats: int = 128,
                  out_feats: int = 64, 
                  var: str = 'd', 
                  cutoff: bool = True, 
@@ -79,8 +79,8 @@ class AlignnConv(nn.Module):
     def __init__(self, in_feats: int = 64, out_feats: int = 64, **kwargs):
         super(AlignnConv, self).__init__()
 
-        self.r_conv = SchnetConv(in_feats, out_feats, var='d', **kwargs)
-        self.angle_conv = SchnetConv(in_feats, out_feats, var='angle', **kwargs)
+        self.r_conv = SchnetConv(in_feats, out_feats, var='d', in_range=(0,1))
+        self.angle_conv = SchnetConv(in_feats, out_feats, var='d', in_range=(-1,1))
 
     def forward(self, 
                 g: dgl.DGLGraph,

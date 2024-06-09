@@ -72,9 +72,9 @@ class color_invariant_triplet(nn.Module):
         return {'zac': za_eq_zc, 'zab': za_eq_zb, 'zbc': zc_eq_zb}
     
     def forward(self, 
-                g: dgl.DGLGraph,
-                h: dgl.DGLGraph,
+                g: Tuple[dgl.DGLGraph, dgl.DGLGraph],
                 ):
+        g, h = g
         
         g = g.local_var()
         h = h.local_var()
