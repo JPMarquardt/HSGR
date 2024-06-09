@@ -4,7 +4,7 @@ import numpy as np
 import nfflr
 
 from typing import Tuple
-from sinn.graph.utils import compute_dx, compute_bond_cosines, copy_d, compute_max_d, compute_nd
+from sinn.graph.utils import compute_bond_cosines, check_in_center
 
 def create_supercell(data: torch.tensor, n: int):
     """
@@ -20,6 +20,30 @@ def create_supercell(data: torch.tensor, n: int):
                 supercell[ind:ind + n_atoms] = data + displacement[None, :]
 
     return supercell
+
+def create_labeled_supercell(data: torch.tensor, n: int, lattice: torch.tensor = None):
+    """
+    Create a supercell
+    """
+    if lattice is None:
+        lattice = torch.eye(3)
+    
+    n_atoms = data.shape[0]
+    d = data.shape[1]
+    supercell = torch.zeros((n_atoms * n**3, d))
+    atom_id = torch.linspace(0, n_atoms-1, n_atoms, dtype=torch.int)
+    atom_id = atom_id.repeat(n**3)
+    cell_id = torch.zeros((n_atoms * n **3, d), dtype=torch.int)
+
+    for i in range(n):
+        for j in range(n):
+            for k in range(n):
+                ind = (i*n**2 + j*n + k) * n_atoms
+                displacement = torch.tensor([i, j, k], dtype=torch.float)
+                supercell[ind:ind + n_atoms] = data + displacement[None, :] @ lattice
+                cell_id[ind:ind + n_atoms] = displacement[None, :]
+
+    return supercell, atom_id, cell_id
 
 def lattice_plane_slicer(data: torch.Tensor, miller_index: torch.Tensor, n: int):
     """
@@ -52,6 +76,15 @@ def lattice_plane_slicer(data: torch.Tensor, miller_index: torch.Tensor, n: int)
     new_cell = torch.where(belowplane, data + propagation_vector, data)
 
     return new_cell
+    
+def create_linegraph(g: dgl.DGLGraph):
+    """
+    Create a line graph from a graph
+    """
+    h = dgl.transforms.line_graph(g)
+    h.ndata['dx'] = g.edata['dx']
+    h.apply_edges(compute_bond_cosines)
+    return h
 
 def create_knn_graph(data: torch.Tensor, k: int, line_graph: bool = False):
     """
@@ -59,24 +92,72 @@ def create_knn_graph(data: torch.Tensor, k: int, line_graph: bool = False):
     """
     g = dgl.knn_graph(data, k)
     g.ndata['x'] = data
+
+    compute_dx = dgl.function.v_sub_u('x', 'x', 'dx')
+    copy_d = dgl.function.copy_e('d', 'm')
+    compute_max_d = dgl.function.max('m', 'max_d')
+    compute_nd = dgl.function.e_div_v('d', 'max_d', 'nd')
+
     g.apply_edges(compute_dx)
     g.edata['d'] = torch.norm(g.edata['dx'], dim=1)
+
     g.update_all(copy_d, compute_max_d)
     g.apply_edges(compute_nd)
+    g.edata['d'] = g.edata.pop('nd')
 
     if line_graph:
-        tfm = dgl.LineGraph()
-        h = tfm(g)
-        h.apply_edges(compute_bond_cosines)
+        h = create_linegraph(g)
     
-    g.edata.pop('dx')
     g.ndata.pop('x')
     g.ndata.pop('max_d')
 
     if line_graph: return (g, h)
     return g
-    
-    
+
+def create_periodic_graph(g):
+    """
+    Create a periodic graph from a graph
+    """
+    cell_id = g.ndata.pop('cell_id')
+    g.ndata['atom_id'] = g.ndata['atom_id'].float()
+
+    in_center = torch.all(torch.eq(cell_id, 1), dim=1)
+
+    g.ndata['in_center'] = in_center.float()
+    gr = g.reverse(copy_edata=True)
+
+    copy_in_center_src = dgl.function.copy_u('in_center', 'in_center_src')
+    copy_in_center_dst = dgl.function.copy_u('in_center', 'in_center_dst')
+
+    g.apply_edges(copy_in_center_src)
+    gr.apply_edges(copy_in_center_dst)
+
+    in_center_src = g.edata.pop('in_center_src')
+    in_center_dst = gr.edata.pop('in_center_dst')
+
+    center_ids = g.filter_nodes(check_in_center)
+
+    g.ndata.pop('in_center')
+
+    out_in_filt = (~in_center_src.bool()) & in_center_dst.bool()
+
+    copy_atom_id_src = dgl.function.copy_u('atom_id', 'atom_id_src')
+    copy_atom_id_dst = dgl.function.copy_u('atom_id', 'atom_id_dst')
+
+    g.apply_edges(copy_atom_id_src)
+    gr.apply_edges(copy_atom_id_dst)
+
+    g.ndata.pop('atom_id')
+
+    src_out_in = g.edata.pop('atom_id_src')[out_in_filt].to(torch.int64)
+    dst_out_in = gr.edata.pop('atom_id_dst')[out_in_filt].to(torch.int64)
+
+    g = g.subgraph(center_ids)
+
+    g.add_edges(src_out_in, dst_out_in)
+
+    return g
+
 if __name__ == "__main__":
     #verify the functions
 
