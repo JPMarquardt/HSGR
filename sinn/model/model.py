@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from sinn.layers.layers import SchnetConv, AlignnConv
 from sinn.graph.graph import create_linegraph
-from sinn.layers.embeddings import color_invariant_duplet, color_invariant_triplet, SchnetEmbedding
+from sinn.layers.embeddings import color_invariant_duplet, color_invariant_triplet
 from sinn.layers.utils import radial_basis_func, MLP, SmoothCutoff
 from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
 
@@ -31,7 +31,7 @@ class Alignn(nn.Module):
         for _ in range(num_layers):
             self.layers.append(AlignnConv(in_feats=hidden_features,
                                               out_feats=hidden_features,
-                                              radial_feats=hidden_features
+                                              radial_feats=radial_features
                                               ))
 
         self.fc = nn.Linear(hidden_features, hidden_features)
@@ -88,7 +88,7 @@ class SchNet(nn.Module):
         super(SchNet, self).__init__()
         self.kwargs = kwargs
 
-        self.radial_embedding = radial_basis_func(hidden_features, (0, 1.0))
+        self.radial_embedding = radial_basis_func(radial_features, (0, 1.0))
         self.cutoff = SmoothCutoff(1.0)
 
         self.node_embedding = torch.ones(hidden_features)
@@ -98,7 +98,7 @@ class SchNet(nn.Module):
         for _ in range(num_layers):
             self.layers.append(SchnetConv(in_feats=hidden_features,
                                               out_feats=hidden_features,
-                                              radial_feats=hidden_features,
+                                              radial_feats=radial_features,
                                               var='d',
                                               cutoff=True,
                                               in_range=(0, 1.0)))
