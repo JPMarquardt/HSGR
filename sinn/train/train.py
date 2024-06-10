@@ -95,11 +95,13 @@ def train_model(model,
                 swa = False
                 ):
     
-    t_device = torch.device(device)
+    if swa:
+        model_name = model_name + '_swa'
 
     if optimizer == None:
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
 
+    t_device = torch.device(device)
     model = model.to(t_device)
 
     ave_training_mae = []
