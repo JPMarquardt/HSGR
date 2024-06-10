@@ -91,7 +91,7 @@ class SchNet(nn.Module):
         self.radial_embedding = radial_basis_func(radial_features, (0, 1.0))
         self.cutoff = SmoothCutoff(1.0)
 
-        self.register_buffer('node embedding', torch.ones(hidden_features))
+        self.register_buffer('node_embedding', torch.ones(hidden_features))
         self.edge_embedding = color_invariant_duplet(hidden_features)
 
         self.layers = nn.ModuleList()
