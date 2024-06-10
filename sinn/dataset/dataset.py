@@ -19,7 +19,7 @@ class FilteredAtomsDataset():
                  categorical_filter: Tuple[Tuple[bool], Tuple[str], Tuple[Tuple[Any]]] = None,
                  transform: Callable = None,
                  collate: Callable = None,
-                 target: Optional[str] = None,
+                 **kwargs
                  ):
         """
         A wrapper on the nfflr AtomsDataset to allow for filtering of the dataset
@@ -84,7 +84,7 @@ class FilteredAtomsDataset():
         self.dataset = AtomsDataset(df = dataset,
                                     transform = self.transform,
                                     custom_collate_fn = self.collate,
-                                    target = target)
+                                    **kwargs)
         return
     
 def arbitrary_feat(dataset):
@@ -135,12 +135,14 @@ def collate_noise(batch: Tuple[Tuple[torch.Tensor, dgl.DGLGraph]]):
     target = torch.cat(target_list)
     return bg, target
 
-def universe2df(trajectory: Universe, target: Iterable = None) -> pd.DataFrame:
+def universe2df(trajectory: Universe, **kwargs) -> pd.DataFrame:
     """
     Convert a GSD file to a pandas dataframe
     """
-    if target is None:
+    if kwargs.get('target') is None:
         target = [0]*len(trajectory.trajectory)
+    else:
+        target = kwargs['target']
     
     atom_types = trajectory.atoms.types
     lattice_parameters = torch.tensor(trajectory.dimensions)
