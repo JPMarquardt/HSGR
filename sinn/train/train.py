@@ -56,7 +56,7 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = No
                 optimizer.step()
                 optimizer.zero_grad()
 
-            mae = torch.sum(torch.abs(y - pred))
+            mae = torch.mean(torch.abs(y - pred))
 
             inv_step = 1/(step + 1)
             inv_step_comp = 1 - inv_step
