@@ -26,9 +26,9 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
                         collate = collate_noise,
                         ).dataset
 
-model_name = 'SchNet-AtomNoise-Spg225'
+model_name = 'SchNet-AtomNoise-Spg225-1L'
 model_path = 'models/24-06-10/'
-model = SchNet(num_classes=1, num_layers=2, hidden_features=64, radial_features=256)
+model = SchNet(num_classes=1, num_layers=1, hidden_features=64, radial_features=256)
 loss_func = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
