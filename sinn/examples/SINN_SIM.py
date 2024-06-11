@@ -11,7 +11,7 @@ from sinn.train.transforms import SimulatedNoiseRegressionEval
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-k = 50
+k = 17
 pre_eval_func = SimulatedNoiseRegressionEval(k = k)
 
 dataset_aggr = Universe('./test_traj/trajectory_LS4.5_FP0.5_RN105_BL10_DL5.35_aggr')
