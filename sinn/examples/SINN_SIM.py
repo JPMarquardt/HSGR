@@ -15,7 +15,6 @@ k = 50
 pre_eval_func = SimulatedNoiseRegressionEval(k = k)
 
 dataset_CsCl = Universe('./test_traj/trajectory_LS5.5_FP0.5_RN105_BL10_DL5.4_CsCl.gsd')
-dataset_agg = Universe('./trajectory_LS4.5_FP0.5_RN105_BL10_DL5.35_aggregate.gsd')
 
 dataset = FilteredAtomsDataset(source = dataset_CsCl,
                                transform=pre_eval_func,
