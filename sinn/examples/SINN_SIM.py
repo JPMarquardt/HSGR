@@ -33,4 +33,4 @@ pred_list = test_model(model = model,
                        device=device,)
 
 plt.plot(pred_list)
-plt.savefig(f'{model_path}{model_name}_CsCl.png')
+plt.savefig(f'{model_path}{model_name}_aggr.png')
