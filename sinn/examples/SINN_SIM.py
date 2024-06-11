@@ -14,9 +14,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 pre_eval_func = SimulatedNoiseRegressionEval(k = k)
 
-dataset_CsCl = Universe('./test_traj/trajectory_LS5.5_FP0.5_RN105_BL10_DL5.4_CsCl.gsd', topology_format='GSD')
+dataset = Universe('./test_traj/trajectory_LS4.5_FP0.5_RN105_BL10_DL5.35_aggregate.gsd', topology_format='GSD')
 
-dataset = FilteredAtomsDataset(source = dataset_CsCl,
+dataset = FilteredAtomsDataset(source = dataset,
                                transform=pre_eval_func,
                                target = 'target').dataset
 
@@ -33,4 +33,4 @@ pred_list = test_model(model = model,
                        device=device,)
 
 plt.plot(pred_list)
-plt.savefig(f'{model_path}{model_name}_CsCl.png')
+plt.savefig(f'{model_path}{model_name}_aggr.png')
