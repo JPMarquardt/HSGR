@@ -22,7 +22,7 @@ class SchnetConv(nn.Module):
                  in_feats: int = 64,
                  radial_feats: int = 128,
                  out_feats: int = 64, 
-                 var: str = 'd', 
+                 var: str = 'r', 
                  cutoff: bool = True, 
                  in_range: tuple[float, float] = None, 
                  **kwargs):
@@ -35,13 +35,13 @@ class SchnetConv(nn.Module):
             self.cutoff = SmoothCutoff(cutoff=max)
         else:
             self.cutoff = SmoothCutoff(cutoff=False)
-
-        #initialize radial basis function
-        self.basis_func = radial_basis_func(radial_feats, in_range)
         
         #filter generation network
         self.FGN_MLP1 = MLP(radial_feats, in_feats)
         self.FGN_MLP2 = MLP(in_feats, in_feats)
+
+        self.src_mul_edge = fn.u_mul_e('h','h','m')
+        self.mean_coll = fn.mean('m', 'h')
 
         #interaction block
         self.IB_MLP1 = MLP(in_feats, out_feats)
@@ -59,7 +59,7 @@ class SchnetConv(nn.Module):
 
         g.edata['h'] = bf * g.edata['h']
 
-        g.update_all(fn.u_mul_e('h','h','m'), fn.mean('m', 'h'))
+        g.update_all(self.src_mul_edge, self.mean_coll)
         
         out = self.IB_MLP1(g.ndata['h'])
         return self.IB_MLP2(out)
@@ -79,8 +79,8 @@ class AlignnConv(nn.Module):
     def __init__(self, in_feats: int = 64, out_feats: int = 64, **kwargs):
         super(AlignnConv, self).__init__()
 
-        self.r_conv = SchnetConv(in_feats, out_feats, var='d', in_range=(0,1))
-        self.angle_conv = SchnetConv(in_feats, out_feats, var='d', in_range=(-1,1))
+        self.r_conv = SchnetConv(in_feats, out_feats, var='r', in_range=(0,1))
+        self.angle_conv = SchnetConv(in_feats, out_feats, var='r', in_range=(-1,1))
 
     def forward(self, 
                 g: dgl.DGLGraph,
