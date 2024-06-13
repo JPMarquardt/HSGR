@@ -82,7 +82,7 @@ def create_linegraph(g: dgl.DGLGraph):
     Create a line graph from a graph
     """
     h = dgl.transforms.line_graph(g)
-    h.ndata['dx'] = g.edata['dx']
+    h.ndata['dr'] = g.edata['dr']
     h.apply_edges(compute_bond_cosines)
     return h
 
@@ -91,25 +91,25 @@ def create_knn_graph(data: torch.Tensor, k: int, line_graph: bool = False):
     Create a k-nearest neighbor graph with necessary edge features
     """
     g = dgl.knn_graph(data, k)
-    g.ndata['x'] = data
+    g.ndata['r'] = data
 
-    compute_dx = dgl.function.v_sub_u('x', 'x', 'dx')
-    copy_d = dgl.function.copy_e('d', 'm')
-    compute_max_d = dgl.function.max('m', 'max_d')
-    compute_nd = dgl.function.e_div_v('d', 'max_d', 'nd')
+    compute_dx = dgl.function.v_sub_u('r', 'r', 'dr')
+    copy_d = dgl.function.copy_e('r', 'm')
+    compute_max_d = dgl.function.max('m', 'max_r')
+    compute_nd = dgl.function.e_div_v('r', 'max_r', 'nr')
 
     g.apply_edges(compute_dx)
-    g.edata['d'] = torch.norm(g.edata['dx'], dim=1)
+    g.edata['r'] = torch.norm(g.edata['dr'], dim=1)
 
     g.update_all(copy_d, compute_max_d)
     g.apply_edges(compute_nd)
-    g.edata['d'] = g.edata.pop('nd')
+    g.edata['r'] = g.edata.pop('nr')
 
     if line_graph:
         h = create_linegraph(g)
     
-    g.ndata.pop('x')
-    g.ndata.pop('max_d')
+    g.ndata.pop('r')
+    g.ndata.pop('max_r')
 
     if line_graph: return (g, h)
     return g
