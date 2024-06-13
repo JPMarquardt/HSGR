@@ -41,8 +41,8 @@ class Alignn(nn.Module):
 
     def get_bf_cutoff(self, g) -> None:
         if g.edata.get('cutoff') is None:
-            bf = self.radial_embedding(g.edata['d'])
-            cutoff = self.cutoff(g.edata['d']).unsqueeze(-1)
+            bf = self.radial_embedding(g.edata['r'])
+            cutoff = self.cutoff(g.edata['r']).unsqueeze(-1)
 
             g.edata['bf'] = bf * cutoff
             g.edata['cutoff'] = cutoff
@@ -99,7 +99,7 @@ class SchNet(nn.Module):
             self.layers.append(SchnetConv(in_feats=hidden_features,
                                               out_feats=hidden_features,
                                               radial_feats=radial_features,
-                                              var='d',
+                                              var='r',
                                               cutoff=True,
                                               in_range=(0, 1.0)))
 
@@ -110,8 +110,8 @@ class SchNet(nn.Module):
 
     def get_bf_cutoff(self, g) -> None:
         if g.edata.get('cutoff') is None:
-            bf = self.radial_embedding(g.edata['d'])
-            cutoff = self.cutoff(g.edata['d']).unsqueeze(-1)
+            bf = self.radial_embedding(g.edata['r'])
+            cutoff = self.cutoff(g.edata['r']).unsqueeze(-1)
 
             g.edata['bf'] = bf * cutoff
             g.edata['cutoff'] = cutoff
