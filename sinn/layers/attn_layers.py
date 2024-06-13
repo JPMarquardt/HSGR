@@ -7,49 +7,6 @@ import torch.nn as nn
 from sinn.layers.utils import SmoothCutoff, MLP, radial_basis_func
 from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
 
-class MDNetEmbed(nn.Module):
-    """
-    Graph convolution layer from SchNet model (adds edge features too)
-    Inputs:
-    - in_feats: int, input features
-    - out_feats: int, output features
-    - var: str, variable to use for convolution
-    Forward:
-    - g: dgl.DGLGraph, input graph
-    Outputs:
-    - out: torch.tensor, output features
-    """
-    def __init__(self, 
-                 in_feats: int = 64, 
-                 out_feats: int = 64, 
-                 var: str = 'd', 
-                 cutoff: bool = True, 
-                 in_range: Tuple[float, float] = None, 
-                 **kwargs):
-        super(MDNetEmbed, self).__init__()
-        self.var = var
-
-        #cutoff function
-        if cutoff:
-            max = in_range[1]
-            self.cutoff = SmoothCutoff(cutoff=max)
-        else:
-            self.cutoff = SmoothCutoff(cutoff=False)
-
-        #initialize radial basis function
-        self.basis_func = radial_basis_func(in_feats, in_range)
-        
-        #filter generation network
-        self.FGN_MLP1 = MLP(in_feats, in_feats)
-        self.FGN_MLP2 = MLP(in_feats, in_feats)
-
-        #interaction block
-        self.IB_MLP = MLP(in_feats, out_feats)
-
-    def forward(self, g):
-        return#FIIIEXXXXX
-
-
 class MDNetAttn(nn.Module):
     """
     Graph convolution layer from SchNet model (adds edge features too)
@@ -64,14 +21,15 @@ class MDNetAttn(nn.Module):
     https://arxiv.org/abs/2202.02541
     """
     def __init__(self, in_feats: int = 64, 
-                 hidden_feats: int = 64, #???
+                 radial_feats: int = 256,
+                 hidden_features: int = 64,
                  out_feats: int = 64, 
                  var: str = 'd', 
                  cutoff: bool = True, 
                  in_range: Tuple[float, float] = None, 
                  **kwargs):
         super(MDNetAttn, self).__init__()
-        self.var = var
+        self.out_feats = out_feats
 
         #cutoff function
         if cutoff:
@@ -79,76 +37,95 @@ class MDNetAttn(nn.Module):
             self.cutoff = SmoothCutoff(cutoff=max)
         else:
             self.cutoff = SmoothCutoff(cutoff=False)
-        
-        #filter generation network
-        self.FGN_MLP1 = MLP(in_feats, in_feats)
-        self.FGN_MLP2 = MLP(in_feats, in_feats)
+
+        #key, query, value
+        self.K_MLP = MLP(in_feats, hidden_features)
+        self.Q_MLP = MLP(in_feats, hidden_features)
+        self.V_MLP = MLP(in_feats, hidden_features)
+
+        #dV and dK
+        self.dV_MLP = MLP(radial_feats, hidden_features)
+        self.dK_MLP = MLP(radial_feats, hidden_features)
 
         #interaction block
-        self.IB_MLP = MLP(in_feats, out_feats)
+        self.MLP_A = MLP(hidden_features, out_feats * 3)
 
         #S1 and S2
-        self.MLP_S1 = MLP(in_feats, out_feats)
-        self.MLP_S2 = MLP(in_feats, out_feats)
+        self.MLP_S1 = MLP(hidden_features, 1)
+        self.MLP_S2 = MLP(hidden_features, 1)
 
-
-
-    def cfconv(self, edges):
-        #make more efficient
-        k = edges.src['k']
-        q = edges.dst['q']
-        v = edges.src['v']
-
-        dV = edges.data['dV']
-        dK = edges.data['dK']
-        ev = edges.data['h']
-
-        cutoff = edges.data['cutoff']
-
-        weight = torch.nn.SiLU(torch.sum(k * q * dK, dim=-1)) * cutoff
-        value = v * ev * dV * cutoff.unsqueeze(-1)
-
-        return {'h': value * weight.unsqueeze(-1)}
-
-    def reduce_func(self, nodes):
-        return {'h': torch.prod(nodes.mailbox['h'], dim=1)}
 
     def forward(self, g):
         g = g.local_var()
 
-        v_feat = g.ndata['h']
-        e_var = g.edata[self.var]
+        bf = g.edata['bf']
+        cutoff = self.cutoff(g.edata['d']).unsqueeze(-1)
 
-        k = self.K_MLP(v_feat)
-        q = self.Q_MLP(v_feat)
-        v = self.V_MLP(v_feat)
+        src_feat = g.edata['x_src']
+        dst_feat = g.edata['x_dst']
 
-        g.ndata['q'] = q
-
-        if g.edata.get('cutoff') is None:
-            bf = self.basis_func(e_var)
-            cutoff = self.cutoff(e_var)
-
-            g.edata['bf'] = bf * cutoff
-            g.edata['cutoff'] = cutoff
+        k = self.K_MLP(src_feat)
+        q = self.Q_MLP(dst_feat)
+        v = self.V_MLP(src_feat)
 
         dV = torch.nn.SiLU(self.dV_MLP(bf))
         dK = torch.nn.SiLU(self.dK_MLP(bf))
 
-        g.edata['dV'] = dV
-        g.edata['dK'] = dK
+        a =  torch.nn.SiLU(torch.sum(k * q * dK, dim = 1, keepdim = True)) * cutoff
+        vdV =  v * dV
 
-        g.ndata['k'] = k
-        g.ndata['v'] = v
+        g.edata['a'] = a * self.MLP_A(vdV)
+        g.update_all(fn.copy_e('a', 'm'), fn.sum('m', 'y'))
 
-        g.update_all(self.cfconv, self.reduce_func)
+        q1, q2, q3 = torch.split(g.ndata['y'], self.out_feats, dim = 1)
+        s1 = self.MLP_S1(vdV)
+        s2 = self.MLP_S2(vdV)
 
-        y = self.IB_MLP(g.ndata['h'])
+        return (q1, q2, q3, s1, s2)
+    
+class MDNetUpdate(nn.Module):
+    """
+    
+    """
+    def __init__(self, in_feats: int = 64, 
+                 radial_feats: int = 256,
+                 hidden_features: int = 64,
+                 out_feats: int = 64, 
+                 var: str = 'd', 
+                 cutoff: bool = True, 
+                 in_range: Tuple[float, float] = None, 
+                 **kwargs):
+        super(MDNetUpdate, self).__init__()
 
-        s1 = self.MLP_S1(g.ndata['v'])
-        s2 = self.MLP_S2(g.ndata['v'])
+        self.attention = MDNetAttn(in_feats, radial_feats, hidden_features, out_feats, var, cutoff, in_range)
 
-        g.ndata['s1'] = s1
-        g.ndata['s2'] = s2
+        self.U1 = MLP(3, 3)
+        self.U2 = MLP(3, 3)
+        self.U3 = MLP(3, 3)
 
-        return (y, s1, s2)
+    def forward(self, g):
+        g = g.local_var()
+
+        #qi in R^F, si in R
+        q1, q2, q3, s1, s2 = self.attention(g)
+
+        #delta_x_i in R^3
+        v_i = g.ndata['x']
+        delta_x_i = q1 + q2 * torch.sum(self.U1(v_i) * self.U2(v_i), dim = 1, keepdim = True)
+
+        #ndx in R^3
+        dx = g.edata['dr']
+        ndx = dx / torch.norm(dx, dim = 1, keepdim = True)
+        ndx = ndx * s2
+
+        #v_j in R^3
+        v_j = g.edata['v_src']
+        v_j = v_j * s1
+
+        g.edata['w'] = v_j + ndx
+        g.update_all(fn.copy_e('w', 'm'), fn.sum('m', 'w_i'))
+
+        g.ndata['x'] = g.ndata['w_i'] + q3.unsqueeze(0) * self.U3(v_i)
+        g.ndata['v_i'] = v_i + delta_x_i
+
+        return g
