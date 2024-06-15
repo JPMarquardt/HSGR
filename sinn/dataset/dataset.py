@@ -17,6 +17,7 @@ class FilteredAtomsDataset():
                  n_unique_atoms: Tuple[bool, int] = None,
                  atom_types: Tuple[bool, str] = None,
                  categorical_filter: Tuple[Tuple[bool], Tuple[str], Tuple[Tuple[Any]]] = None,
+                 target: str = None,
                  transform: Callable = None,
                  collate: Callable = None,
                  **kwargs
@@ -40,7 +41,7 @@ class FilteredAtomsDataset():
         """
         self.transform = transform
         self.collate = collate
-
+        
         if isinstance(source, str):
             dataset = AtomsDataset(source)
             dataset = pd.DataFrame(dataset.df)
@@ -53,6 +54,8 @@ class FilteredAtomsDataset():
 
         
         print(f'Taking dataset with size {dataset.shape}')
+        if 'spg_number' in dataset.columns:
+            dataset['spg_number'] = dataset['spg_number'].str.extract('(\d+)').astype(int)
 
         if atom_types:
             NotImplementedError()
@@ -80,8 +83,29 @@ class FilteredAtomsDataset():
                 dataset = dataset[filt]
                 dataset.reset_index(inplace=True)
 
+        if target == 'spg_number':
+            unique_spg = dataset['spg_number'].unique()
+            unique_spg.sort()
+
+            original_spg = dataset['spg_number']
+            dataset['spg_number'] = dataset['spg_number'].astype(object)
+
+            for i, spg in enumerate(unique_spg):
+                spg_tensor = torch.zeros(len(unique_spg), dtype=torch.float32)
+                spg_tensor[i] = 1.0
+
+                index = original_spg == spg
+                with_spg = dataset.loc[index , 'spg_number']
+
+                spg_tensor_list = [spg_tensor] * len(with_spg)
+                spg_tensor_list = pd.Series(spg_tensor_list)
+                spg_tensor_list.index = with_spg.index
+
+                dataset.loc[index, 'spg_number'] = spg_tensor_list
+
         print(f'Dataset reduced to size {dataset.shape}')
         self.dataset = AtomsDataset(df = dataset,
+                                    target = target,
                                     transform = self.transform,
                                     custom_collate_fn = self.collate,
                                     **kwargs)
@@ -124,15 +148,24 @@ def collate_general(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
     target_block = torch.stack(targets, 0)
     return dgl.batch(graphs), target_block
 
+def collate_multihead_noise(batch: Tuple[Tuple[torch.Tensor, dgl.DGLGraph]]):
+    """
+    Create a batch of DGLGraphs
+    """
+    batch, classification_target_list = zip(*batch)
+    g_list, regression_target_list = map(list, zip(*batch))
+    bg = dgl.batch(g_list)
+    target = (torch.stack(classification_target_list), torch.cat(regression_target_list))
+    return bg, target
+
 def collate_noise(batch: Tuple[Tuple[torch.Tensor, dgl.DGLGraph]]):
     """
     Create a batch of DGLGraphs
     """
-    batch, _ = zip(*batch)
-    g_list = [g for g, _ in batch]
-    target_list = [target for _, target in batch]
+    batch, dataset_target_list = zip(*batch)
+    g_list, noise_target_list = map(list, zip(*batch, dataset_target_list))
     bg = dgl.batch(g_list)
-    target = torch.cat(target_list)
+    target = torch.cat(noise_target_list)
     return bg, target
 
 def universe2df(trajectory: Universe, **kwargs) -> pd.DataFrame:

@@ -3,8 +3,7 @@ import torch
 import dgl
 import dgl.function as fn
 import torch.nn as nn
-from sinn.layers.utils import SmoothCutoff, MLP, radial_basis_func
-from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
+from sinn.layers.utils import SmoothCutoff, MLP
 
 class SchnetConv(nn.Module):
     """

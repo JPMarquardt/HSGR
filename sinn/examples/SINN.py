@@ -9,7 +9,7 @@ from sinn.train.transforms import NoiseRegressionEval
 
 
 n_atoms = 2
-spg = ('225',)
+spg = ('225','220')
 categorical_filter = ([True],['spg_number'],[spg])
 
 batch_size = 8
@@ -19,9 +19,17 @@ k = 17
 noise = lambda x: 1 - torch.sqrt(1 - x**2)
 pre_eval_func = NoiseRegressionEval(noise = noise, k = k)
 
+def custom_loss_func(output, target):
+    dataset_pred = output[0]
+    dataset_target = target[0]
+
+    noise_pred = output[1]
+    return 
+
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
                         categorical_filter = categorical_filter,
+                        target = 'space_group',
                         transform=pre_eval_func,
                         collate = collate_noise,
                         ).dataset
