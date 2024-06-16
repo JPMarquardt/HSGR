@@ -7,15 +7,15 @@ def compute_bond_cosines(edges):
     # use law of cosines to compute angles cosines
     # negate src bond so displacements are like `a <- b -> c`
     # cos(theta) = ba \dot bc / (||ba|| ||bc||)
-    r1 = -edges.src["dx"]
-    r2 = edges.dst["dx"]
+    r1 = -edges.src["dr"]
+    r2 = edges.dst["dr"]
     bond_cosine = torch.sum(r1 * r2, dim=1) / (
         torch.norm(r1, dim=1) * torch.norm(r2, dim=1)
     )
     bond_cosine = torch.clamp(bond_cosine, -1, 1)
     # bond_cosine = torch.arccos((torch.clamp(bond_cosine, -1, 1)))
 
-    return {"d": bond_cosine}
+    return {"r": bond_cosine}
 
 def check_in_center(nodes):
     """Get the projection of the edge onto the plane."""
