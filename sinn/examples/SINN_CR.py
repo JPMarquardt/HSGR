@@ -28,7 +28,7 @@ def custom_loss_func(output, target):
     noise_loss = nn.MSELoss()(regression_pred, regression_target)
 
     penalty = 1 - regression_target
-    return torch.sum(dataset_loss * penalty + noise_loss)
+    return torch.mean(dataset_loss * penalty + noise_loss)
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
