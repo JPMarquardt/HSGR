@@ -1,36 +1,77 @@
 import torch.nn as nn
 import torch
-import matplotlib.pyplot as plt
+import importlib
+import sinn.dataset.dataset
+import sinn.simulation.simulation
+import sinn.train.train
+import sinn.graph.graph
+sinn.dataset.dataset = importlib.reload(sinn.dataset.dataset)
+sinn.train.train = importlib.reload(sinn.train.train)
+sinn.graph.graph = importlib.reload(sinn.graph.graph)
+sinn.simulation.simulation = importlib.reload(sinn.simulation.simulation)
 
+
+from MDAnalysis.coordinates.GSD import GSDReader
 from MDAnalysis import Universe
 
-from sinn.dataset.dataset import FilteredAtomsDataset
+from sinn.dataset.dataset import FilteredAtomsDataset, collate_noise
 from sinn.model.model import SchNet, Alignn
 from sinn.train.train import test_model
 from sinn.train.transforms import SimulatedNoiseRegressionEval
 
+n_atoms = 2
+spg = ('225',)
+categorical_filter = ([True],['spg_number'],[spg])
+
+batch_size = 8
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 17
 pre_eval_func = SimulatedNoiseRegressionEval(k = k)
 
-dataset = Universe('./test_traj/trajectory_LS4_FP0.5_RN105_BL10_DL5.3_Th3P4.gsd', topology_format='GSD')
+dataset = Universe('./test_traj/trajectory_LS4.5_FP0.5_RN105_BL10_DL5.35_aggregate.gsd')
 
 dataset = FilteredAtomsDataset(source = dataset,
                                transform=pre_eval_func,
                                target = 'target').dataset
 
-model_name = 'SchNet-AtomNoise-Spg225'
-model_path = 'models/24-06-10/'
-output_dir = f'{model_path}{model_name}.pkl'
-model = torch.load(output_dir)
+model_name = 'SchNet-AtomNoise-Spg225-1L'
+model_path = 'models/24-06-16/'
 
+class SchNet_Multihead(nn.Module):
+    def __init__(self, num_classes, num_layers, hidden_features, radial_features):
+        super(SchNet_Multihead, self).__init__()
+        self.model = SchNet(num_classes=num_classes+1, num_layers=num_layers, hidden_features=hidden_features, radial_features=radial_features)
+        self.classifier = nn.Linear(num_classes+1, num_classes)
+        self.regression = nn.Linear(num_classes+1, 1)
+
+        self.sm = nn.Softmax(dim=1)
+    def forward(self, x):
+        x = self.model(x)
+
+        reg_pred = self.regression(x)
+
+        class_pred = self.classifier(x)
+        class_pred = self.sm(class_pred)
+        
+        return class_pred, reg_pred
+
+model = torch.load(model_path + model_name + '.pkl')
 loss_func = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-pred_list = test_model(model = model, 
-                       dataset=dataset,
-                       device=device,)
+def hook_fn(module, input, output):
+    fc2.append(output)
+model.model.fc.register_forward_hook(hook_fn)
 
-plt.plot(pred_list)
-plt.savefig(f'{model_path}{model_name}_Th3P4.png')
+fc2 = []
+
+preds = test_model(model = model, 
+                   dataset=dataset,
+                   device=device,)
+
+fc_save = torch.cat(fc2, dim=0)
+preds_save = torch.cat(preds)
+
+torch.save(fc_save, model_path + model_name + '_fc2.pkl')
+torch.save(preds_save, model_path + model_name + '_preds.pkl')
