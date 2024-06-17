@@ -20,7 +20,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 pre_eval_func = SimulatedNoiseRegressionEval(k = k)
 
-dataset = Universe('./test_traj/trajectory_LS4.5_FP0.5_RN105_BL10_DL5.35_aggregate.gsd')
+dataset = Universe('./test_traj/trajectory_LS4_FP0.5_RN105_BL10_DL5.3_Th3P4.gsd')
 
 dataset = FilteredAtomsDataset(source = dataset,
                                transform=pre_eval_func,
