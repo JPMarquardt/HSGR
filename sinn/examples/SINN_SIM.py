@@ -1,15 +1,6 @@
 import torch.nn as nn
 import torch
 import importlib
-import sinn.dataset.dataset
-import sinn.simulation.simulation
-import sinn.train.train
-import sinn.graph.graph
-sinn.dataset.dataset = importlib.reload(sinn.dataset.dataset)
-sinn.train.train = importlib.reload(sinn.train.train)
-sinn.graph.graph = importlib.reload(sinn.graph.graph)
-sinn.simulation.simulation = importlib.reload(sinn.simulation.simulation)
-
 
 from MDAnalysis.coordinates.GSD import GSDReader
 from MDAnalysis import Universe
