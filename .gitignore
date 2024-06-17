@@ -7,3 +7,5 @@ Models
 *.sh
 **egg-info**
 **pycache**
+*.png
+*.pkl
