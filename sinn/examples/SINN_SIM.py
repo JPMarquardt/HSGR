@@ -26,7 +26,7 @@ dataset = FilteredAtomsDataset(source = dataset,
                                transform=pre_eval_func,
                                target = 'target').dataset
 
-model_name = 'SchNet-AtomNoise-Spg225-4L'
+model_name = 'SchNet-AtomNoise-Spg225-4L-Th3P4'
 model_path = 'models/24-06-16/'
 
 class SchNet_Multihead(nn.Module):
