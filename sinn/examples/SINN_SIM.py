@@ -61,7 +61,7 @@ preds = test_model(model = model,
                    dataset=dataset,
                    device=device,)
 
-preds = list(map(lambda x: torch.cat(x, dim=0), preds))
+preds = list(map(lambda x: torch.cat(x, dim=1), preds))
 
 fc_save = torch.stack(fc2, dim=0)
 preds_save = torch.stack(preds)
