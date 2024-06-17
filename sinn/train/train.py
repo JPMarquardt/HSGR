@@ -22,7 +22,7 @@ def test_model(model, dataset, device):
                 g = g.to(device)
 
             pred = model(g)
-            pred_list.append(pred.item())
+            pred_list.append(pred)
 
     return pred_list
 

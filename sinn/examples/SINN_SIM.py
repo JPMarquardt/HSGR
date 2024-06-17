@@ -61,8 +61,10 @@ preds = test_model(model = model,
                    dataset=dataset,
                    device=device,)
 
-fc_save = torch.cat(fc2, dim=0)
-preds_save = torch.cat(preds)
+preds = list(map(lambda x: torch.cat(x, dim=0), preds))
+
+fc_save = torch.stack(fc2, dim=0)
+preds_save = torch.stack(preds)
 
 torch.save(fc_save, model_path + model_name + '_fc2.pkl')
 torch.save(preds_save, model_path + model_name + '_preds.pkl')
