@@ -20,7 +20,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 pre_eval_func = SimulatedNoiseRegressionEval(k = k)
 
-dataset = Universe('./test_traj/trajectory_LS4_FP0.5_RN105_BL10_DL5.3_Th3P4.gsd')
+dataset = Universe('./test_traj/trajectory_LS5.5_FP0.5_RN105_BL10_DL5.4_CsCl.gsd')
 
 dataset = FilteredAtomsDataset(source = dataset,
                                transform=pre_eval_func,
@@ -66,5 +66,5 @@ preds = list(map(lambda x: torch.cat(x, dim=1), preds))
 fc_save = torch.stack(fc2, dim=0)
 preds_save = torch.stack(preds)
 
-torch.save(fc_save, model_path + model_name + '-Th3P4_fc2.pkl')
-torch.save(preds_save, model_path + model_name + '-Th3P4_preds.pkl')
+torch.save(fc_save, model_path + model_name + '-CsCl_fc2.pkl')
+torch.save(preds_save, model_path + model_name + '-CsCl_preds.pkl')
