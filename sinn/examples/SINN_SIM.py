@@ -26,7 +26,7 @@ dataset = FilteredAtomsDataset(source = dataset,
                                transform=pre_eval_func,
                                target = 'target').dataset
 
-model_name = 'SchNet-AtomNoise-Spg225-4L-Th3P4'
+model_name = 'SchNet-AtomNoise-Spg225-4L'
 model_path = 'models/24-06-16/'
 
 class SchNet_Multihead(nn.Module):
@@ -66,5 +66,5 @@ preds = list(map(lambda x: torch.cat(x, dim=1), preds))
 fc_save = torch.stack(fc2, dim=0)
 preds_save = torch.stack(preds)
 
-torch.save(fc_save, model_path + model_name + '_fc2.pkl')
-torch.save(preds_save, model_path + model_name + '_preds.pkl')
+torch.save(fc_save, model_path + model_name + '-Th3P4_fc2.pkl')
+torch.save(preds_save, model_path + model_name + '-Th3P4_preds.pkl')
