@@ -19,13 +19,6 @@ k = 17
 noise = lambda x: 1 - torch.sqrt(1 - x**2)
 pre_eval_func = NoiseRegressionEval(noise = noise, k = k)
 
-def custom_loss_func(output, target):
-    dataset_pred = output[0]
-    dataset_target = target[0]
-
-    noise_pred = output[1]
-    return 
-
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
                         categorical_filter = categorical_filter,

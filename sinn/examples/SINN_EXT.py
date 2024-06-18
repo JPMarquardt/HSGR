@@ -24,7 +24,7 @@ class SchNet_Multihead(nn.Module):
         
         return class_pred, reg_pred
     
-model_name = 'SchNet-AtomNoise-Spg225-1L'
+model_name = 'SchNet-AtomNoise-Spg225-4L'
 model_path = 'models/24-06-16/'
 model = torch.load(f'{model_path}{model_name}.pkl')
 
@@ -43,6 +43,9 @@ def custom_loss_func(output, target):
     classification_pred = output[0]
     classification_target = target[0]
 
+    class_weights = torch.tensor([1, 0.1])
+    weight = class_weights * classification_target
+
     regression_pred = output[1]
     regression_target = target[1]
 
@@ -50,7 +53,8 @@ def custom_loss_func(output, target):
     noise_loss = nn.MSELoss()(regression_pred, regression_target)
 
     penalty = 1 - regression_target
-    return torch.mean(dataset_loss * penalty + noise_loss)
+    output = dataset_loss * penalty + noise_loss
+    return torch.mean(weight * output)
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
@@ -59,9 +63,6 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
                         transform=pre_eval_func,
                         collate = collate_multihead_noise,
                         ).dataset
-
-
-
 
 
 loss_func = custom_loss_func
