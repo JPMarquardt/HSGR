@@ -20,7 +20,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 pre_eval_func = SimulatedNoiseRegressionEval(k = k)
 
-model_name = 'SchNet-AtomNoise-Spg225-1L'
+model_name = 'SchNet-AtomNoise-Spg225-4L'
 model_path = 'models/24-06-16/'
 
 class SchNet_Multihead(nn.Module):
