@@ -95,6 +95,11 @@ def train_model(model,
     
     if swa:
         model_name = model_name + '_swa'
+        swa_model = torch.optim.swa_utils.AveragedModel(model)
+        if scheduler is None:
+            scheduler = torch.optim.swa_utils.SWALR(optimizer, swa_lr=0.05)
+    else:
+        swa_model = False
 
     if optimizer == None:
         optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=0.1)
@@ -131,7 +136,7 @@ def train_model(model,
                             epoch=epoch,
                             scheduler=scheduler,
                             train=True,
-                            swa=swa)
+                            swa=swa_model)
 
         ave_training_loss.append(ave_loss)
 
