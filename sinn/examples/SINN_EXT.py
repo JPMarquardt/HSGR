@@ -43,7 +43,7 @@ def custom_loss_func(output, target):
     classification_pred = output[0]
     classification_target = target[0]
 
-    class_weights = torch.tensor([1, 0.1])
+    class_weights = torch.tensor([1, 0.1], device=device)
     weight = class_weights * classification_target
 
     regression_pred = output[1]
