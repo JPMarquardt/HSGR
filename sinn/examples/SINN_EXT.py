@@ -24,7 +24,7 @@ class SchNet_Multihead(nn.Module):
         
         return class_pred, reg_pred
     
-model_name = 'SchNet-AtomNoise-Spg225-4L'
+model_name = 'SchNet-AtomNoise-Spg225-1L'
 model_path = 'models/24-06-16/'
 model = torch.load(f'{model_path}{model_name}.pkl')
 
@@ -41,7 +41,7 @@ pre_eval_func = NoiseRegressionEval(noise = noise, k = k)
 
 def custom_loss_func(output, target):
     classification_pred = output[0].squeeze()
-    classification_target = target[0]
+    classification_target = target[0].squeeze()
 
     class_weights = torch.tensor([1, 0.1], device=device).unsqueeze(0)
     weight = torch.sum(class_weights * classification_target, dim = 1)
