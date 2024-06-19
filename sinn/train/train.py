@@ -10,19 +10,23 @@ from torch.utils.data.sampler import SubsetRandomSampler
 
 
 
-def test_model(model, dataset, device):
+def test_model(model, dataset, device, sparsity):
     """Runs one epoch of training or evaluation."""
+    if sparsity:
+        if sparsity < 1:
+            sparsity = int(1/sparsity)
 
     pred_list = []
     with torch.no_grad():
         for step, (g, y) in enumerate(tqdm(dataset)):
-            if isinstance(g, tuple):
-                g = tuple(graph_part.to(device) for graph_part in g)
-            else:
-                g = g.to(device)
+            if step % sparsity == 1:
+                if isinstance(g, tuple):
+                    g = tuple(graph_part.to(device) for graph_part in g)
+                else:
+                    g = g.to(device)
 
-            pred = model(g)
-            pred_list.append(pred)
+                pred = model(g)
+                pred_list.append(pred)
 
     return pred_list
 
