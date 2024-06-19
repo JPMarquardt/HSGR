@@ -60,7 +60,8 @@ for name in dataset_names:
 
     preds = test_model(model = model, 
                     dataset=dataset,
-                    device=device,)
+                    device=device,
+                    sparsity=5)
 
     preds = list(map(lambda x: torch.cat(x, dim=1), preds))
 
