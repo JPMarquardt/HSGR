@@ -24,7 +24,7 @@ class SchNet_Multihead(nn.Module):
         
         return class_pred, reg_pred
     
-model_name = 'SchNet-AtomNoise-Spg225-1L'
+model_name = 'SchNet-AtomNoise-Spg225-4L'
 model_path = 'models/24-06-16/'
 model = torch.load(f'{model_path}{model_name}.pkl')
 
