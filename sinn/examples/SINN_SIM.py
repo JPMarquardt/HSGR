@@ -49,7 +49,8 @@ for name in dataset_names:
 
     dataset = FilteredAtomsDataset(source = dataset,
                                 transform=pre_eval_func,
-                                target = 'target').dataset
+                                target = 'target',
+                                sparsity=10).dataset
 
 
     def hook_fn(module, input, output):
@@ -60,8 +61,7 @@ for name in dataset_names:
 
     preds = test_model(model = model, 
                     dataset=dataset,
-                    device=device,
-                    sparsity=5)
+                    device=device,)
 
     preds = list(map(lambda x: torch.cat(x, dim=1), preds))
 
