@@ -20,12 +20,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 pre_eval_func = SimulatedNoiseRegressionEval(k = k)
 
-dataset = Universe('./test_traj/trajectory_LS5.5_FP0.5_RN105_BL10_DL5.4_CsCl.gsd')
-
-dataset = FilteredAtomsDataset(source = dataset,
-                               transform=pre_eval_func,
-                               target = 'target').dataset
-
 model_name = 'SchNet-AtomNoise-Spg225-1L'
 model_path = 'models/24-06-16/'
 
@@ -46,25 +40,35 @@ class SchNet_Multihead(nn.Module):
         class_pred = self.sm(class_pred)
         
         return class_pred, reg_pred
-
+    
 model = torch.load(model_path + model_name + '.pkl')
-loss_func = nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-def hook_fn(module, input, output):
-    fc2.append(output)
-model.model.fc.register_forward_hook(hook_fn)
+dataset_names = ['CsCl', 'Th3P4', 'aggr']
+for name in dataset_names:
+    dataset = Universe(f'./test_traj/{name}.gsd')
 
-fc2 = []
+    dataset = FilteredAtomsDataset(source = dataset,
+                                transform=pre_eval_func,
+                                target = 'target').dataset
 
-preds = test_model(model = model, 
-                   dataset=dataset,
-                   device=device,)
 
-preds = list(map(lambda x: torch.cat(x, dim=1), preds))
+    def hook_fn(module, input, output):
+        fc2.append(output)
+    model.model.fc.register_forward_hook(hook_fn)
 
-fc_save = torch.stack(fc2, dim=0)
-preds_save = torch.stack(preds)
+    fc2 = []
 
-torch.save(fc_save, model_path + model_name + '-CsCl_fc2.pkl')
-torch.save(preds_save, model_path + model_name + '-CsCl_preds.pkl')
+    preds = test_model(model = model, 
+                    dataset=dataset,
+                    device=device,)
+
+    preds = list(map(lambda x: torch.cat(x, dim=1), preds))
+
+    fc_save = torch.stack(fc2, dim=0)
+    preds_save = torch.stack(preds)
+
+    torch.save(fc_save, model_path + model_name + f'-{name}_fc2.pkl')
+    torch.save(preds_save, model_path + model_name + f'-{name}_preds.pkl')
+
+    fc_save = None
+    preds_save = None
