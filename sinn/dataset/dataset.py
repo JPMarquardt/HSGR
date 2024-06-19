@@ -20,6 +20,7 @@ class FilteredAtomsDataset():
                  target: str = None,
                  transform: Callable = None,
                  collate: Callable = None,
+                 sparsity: int = None,
                  **kwargs
                  ):
         """
@@ -102,6 +103,10 @@ class FilteredAtomsDataset():
                 spg_tensor_list.index = with_spg.index
 
                 dataset.loc[index, 'spg_number'] = spg_tensor_list
+
+        if sparsity:
+            dataset = dataset[dataset.index % sparsity == 1]
+            dataset.reset_index(inplace=True)
 
         print(f'Dataset reduced to size {dataset.shape}')
         self.dataset = AtomsDataset(df = dataset,
