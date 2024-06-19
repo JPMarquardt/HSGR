@@ -40,13 +40,13 @@ noise = lambda x: 1 - torch.sqrt(1 - x**2)
 pre_eval_func = NoiseRegressionEval(noise = noise, k = k)
 
 def custom_loss_func(output, target):
-    classification_pred = output[0].squeeze()
-    classification_target = target[0].squeeze()
+    classification_pred = output[0]
+    classification_target = target[0]
 
     class_weights = torch.tensor([1, 0.1], device=device).unsqueeze(0)
     weight = torch.sum(class_weights * classification_target, dim = 1)
 
-    regression_pred = output[1]
+    regression_pred = output[1].squeeze()
     regression_target = target[1]
 
     dataset_loss = nn.BCELoss()(classification_pred, classification_target)
