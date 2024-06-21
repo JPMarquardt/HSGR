@@ -14,6 +14,7 @@ def test_model(model, dataset, device):
     """Runs one epoch of training or evaluation."""
 
     pred_list = []
+    model.eval()
     with torch.no_grad():
         for step, (g, y) in enumerate(tqdm(dataset)):
             if isinstance(g, tuple):

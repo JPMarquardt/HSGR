@@ -8,7 +8,7 @@ from sinn.simulation.simulation import box_filter
 
 from typing import Callable
 
-def noise_regression_prep(a: nfflr.Atoms, n_target_atoms: int, noise: Callable = None, k: int = 9):
+def noise_regression_prep(a: nfflr.Atoms, n_target_atoms: int, noise: Callable = None, k: int = 9, line_graph: bool = False):
     coords = a.positions
     lattice = a.cell
     numbers = a.numbers
@@ -27,14 +27,14 @@ def noise_regression_prep(a: nfflr.Atoms, n_target_atoms: int, noise: Callable =
     sample_noise, supercell = noise_regression(supercell, noise)
     supercell = lattice_plane_slicer(supercell, miller_index, replicates)
     supercell = supercell @ lattice
-
-    g = create_knn_graph(supercell, k=k, line_graph=False)
+    
+    g = create_knn_graph(supercell, k=k)
     numbers = numbers.repeat(replicates**3)
     g.ndata['z'] = numbers
 
     return g, sample_noise
 
-def noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
+def noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9,line_graph: bool = False):
     data = a.positions
     lattice = a.cell
     numbers = a.numbers
@@ -50,7 +50,7 @@ def noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
     cell_id = cell_id[filt]
     numbers = numbers[filt]
 
-    g = create_knn_graph(supercell, k=k, line_graph=False)
+    g = create_knn_graph(supercell, k=k)
 
     g.ndata['z'] = numbers
     g.ndata['atom_id'] = atom_id
@@ -61,10 +61,11 @@ def noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
     return g
 
 class NoiseRegressionEval(nn.Module):
-    def __init__(self, noise, k):
+    def __init__(self, noise, k, line_graph = False):
         super(NoiseRegressionEval, self).__init__()
         self.noise = noise
         self.k = k
+        self.line_graph = line_graph
 
     def forward(self, datapoint):
         n_atoms = torch.randint(1, 5, (1,)) * 1000

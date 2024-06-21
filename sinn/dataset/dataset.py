@@ -104,7 +104,7 @@ class FilteredAtomsDataset():
 
                 dataset.loc[index, 'spg_number'] = spg_tensor_list
 
-        if sparsity:
+        if sparsity is not None:
             dataset = dataset[dataset.index % sparsity == 1]
             dataset.reset_index(inplace=True)
 
@@ -209,7 +209,6 @@ def universe2df(trajectory: Universe, **kwargs) -> pd.DataFrame:
         atoms = Atoms(jAtoms(lattice_mat=lattice_vectors, coords=coords, elements=atom_types, cartesian=True))
         atoms_list.append(atoms)
         jid_list.append(id)
-
 
     df = pd.DataFrame(list(zip(atoms_list,target,jid_list)), columns = ['atoms','target','jid'])
     return df

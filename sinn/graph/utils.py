@@ -1,21 +1,14 @@
 import torch
+import dgl.function as fn
 
-def compute_bond_cosines(edges):
-    """Compute bond angle cosines from bond displacement vectors."""
-    # line graph edge: (a, b), (b, c)
-    # `a -> b -> c`
-    # use law of cosines to compute angles cosines
-    # negate src bond so displacements are like `a <- b -> c`
-    # cos(theta) = ba \dot bc / (||ba|| ||bc||)
-    r1 = -edges.src["dr"]
-    r2 = edges.dst["dr"]
-    bond_cosine = torch.sum(r1 * r2, dim=1) / (
-        torch.norm(r1, dim=1) * torch.norm(r2, dim=1)
-    )
-    bond_cosine = torch.clamp(bond_cosine, -1, 1)
-    # bond_cosine = torch.arccos((torch.clamp(bond_cosine, -1, 1)))
+def compute_bond_cosines(h):
+    h.ndata['dr_norm'] = h.ndata['dr'].norm(dim=1)
 
-    return {"r": bond_cosine}
+    h.apply_edges(fn.u_dot_v('dr', 'dr', 'dr_dot_dr'))
+    h.apply_edges(fn.u_mul_v('dr_norm', 'dr_norm', 'dr_norm_sq'))
+
+    h.edata['r'] = h.edata.pop('dr_dot_dr').squeeze() / h.edata.pop('dr_norm_sq')
+    
 
 def check_in_center(nodes):
     """Get the projection of the edge onto the plane."""

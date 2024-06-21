@@ -9,7 +9,7 @@ from sinn.train.transforms import NoiseRegressionEval
 
 
 n_atoms = 2
-spg = ('225','220')
+spg = (225,220)
 categorical_filter = ([True],['spg_number'],[spg])
 
 batch_size = 8
@@ -29,7 +29,7 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
 
 model_name = 'SchNet-AtomNoise-Spg225-1L'
 model_path = 'models/24-06-10/'
-model = SchNet(num_classes=1, num_layers=1, hidden_features=64, radial_features=256)
+model = Alignn(num_classes=1, num_layers=1, hidden_features=64, radial_features=256)
 loss_func = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 

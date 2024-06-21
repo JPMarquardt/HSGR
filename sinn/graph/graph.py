@@ -83,10 +83,10 @@ def create_linegraph(g: dgl.DGLGraph):
     """
     h = dgl.transforms.line_graph(g)
     h.ndata['dr'] = g.edata['dr']
-    h.apply_edges(compute_bond_cosines)
+    compute_bond_cosines(h)
     return h
 
-def create_knn_graph(data: torch.Tensor, k: int, line_graph: bool = False):
+def create_knn_graph(data: torch.Tensor, k: int):
     """
     Create a k-nearest neighbor graph with necessary edge features
     """
@@ -105,13 +105,9 @@ def create_knn_graph(data: torch.Tensor, k: int, line_graph: bool = False):
     g.apply_edges(compute_nd)
     g.edata['r'] = g.edata.pop('nr')
 
-    if line_graph:
-        h = create_linegraph(g)
-    
     g.ndata.pop('r')
     g.ndata.pop('max_r')
-
-    if line_graph: return (g, h)
+    
     return g
 
 def create_periodic_graph(g):

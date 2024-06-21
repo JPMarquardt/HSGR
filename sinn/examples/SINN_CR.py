@@ -15,16 +15,16 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 17
 noise = lambda x: 1 - torch.sqrt(1 - x**2)
-pre_eval_func = NoiseRegressionEval(noise = noise, k = k)
+pre_eval_func = NoiseRegressionEval(noise = noise, k = k, line_graph=True)
 
 def custom_loss_func(output, target):
     classification_pred = output[0]
     classification_target = target[0]
 
-    class_weights = torch.tensor([1, 0.1])
-    weight = class_weights * classification_target
+    class_weights = torch.tensor([1, 0.1]).unsqueeze(0).to(device)
+    weight = torch.sum(class_weights * classification_target, dim=1)
 
-    regression_pred = output[1]
+    regression_pred = output[1].squeeze()
     regression_target = target[1]
 
     dataset_loss = nn.BCELoss()(classification_pred, classification_target)
@@ -43,7 +43,7 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
                         ).dataset
 
 
-model_name = 'SchNet-AtomNoise-Spg225-4L'
+model_name = 'SchNet-AtomNoise-Spg225-2L'
 model_path = 'models/24-06-16/'
 class SchNet_Multihead(nn.Module):
     def __init__(self, num_classes, num_layers, hidden_features, radial_features):
@@ -63,7 +63,7 @@ class SchNet_Multihead(nn.Module):
         
         return class_pred, reg_pred
 
-model = SchNet_Multihead(num_classes = len(spg), num_layers = 4, hidden_features = 64, radial_features = 256)
+model = SchNet_Multihead(num_classes = len(spg), num_layers = 2, hidden_features = 64, radial_features = 256)
 loss_func = custom_loss_func
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 train_model(model = model,
