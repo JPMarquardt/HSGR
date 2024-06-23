@@ -48,7 +48,7 @@ class Alignn(nn.Module):
             g.edata['cutoff'] = cutoff
         return 
 
-    def forward(self, g):
+    def forward(self, g: Union[dgl.DGLGraph, Tuple[dgl.DGLGraph, dgl.DGLGraph]]):
         if isinstance(g, tuple):
             g, h = g
         else:
@@ -65,12 +65,13 @@ class Alignn(nn.Module):
         #x, y, z
         g.ndata['h'] = self.node_embedding.repeat(n, 1)
         g.edata['h'] = self.edge_embedding(g)
-        h.edata['h'] = self.triplet_embedding(h)
+        h.ndata['h'] = g.edata['h']
+        h.edata['h'] = self.triplet_embedding((g, h))
 
         #update node and edge features
         for layer in self.layers:
             g.edata['h'] = h.ndata['h']
-            g.ndata['h'], h.ndata['h'] = layer(g, h)
+            g.ndata['h'], h.ndata['h'] = layer((g, h))
 
         #final fully connected layers
         x = g.ndata['h']
