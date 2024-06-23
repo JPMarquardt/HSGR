@@ -4,6 +4,7 @@ import dgl
 import dgl.function as fn
 import torch.nn as nn
 from sinn.layers.utils import SmoothCutoff, MLP
+from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
 
 class SchnetConv(nn.Module):
     """
@@ -81,10 +82,7 @@ class AlignnConv(nn.Module):
         self.r_conv = SchnetConv(in_feats, out_feats, var='r', in_range=(0,1))
         self.angle_conv = SchnetConv(in_feats, out_feats, var='r', in_range=(-1,1))
 
-    def forward(self, 
-                g: dgl.DGLGraph,
-                h: dgl.DGLGraph,
-                ):
+    def forward(self, g: Tuple[dgl.DGLGraph, dgl.DGLGraph]):
         g, h = g
 
         g = g.local_var()

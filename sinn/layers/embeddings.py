@@ -71,11 +71,9 @@ class color_invariant_triplet(nn.Module):
 
         return {'zac': za_eq_zc, 'zab': za_eq_zb, 'zbc': zc_eq_zb}
     
-    def forward(self, 
-                g: Tuple[dgl.DGLGraph, dgl.DGLGraph],
-                ):
+    def forward(self, g: Union[dgl.DGLGraph, Tuple[dgl.DGLGraph, dgl.DGLGraph]]):
         g, h = g
-        
+
         g = g.local_var()
         h = h.local_var()
 
@@ -84,9 +82,9 @@ class color_invariant_triplet(nn.Module):
         h.ndata['z_dst'] = g.edata['z_dst']
 
         h.apply_edges(self.comparison3)
-        zac = h.edata['zac']
-        zab = h.edata['zab']
-        zbc = h.edata['zbc']
+        zac = h.edata['zac'].int()
+        zab = h.edata['zab'].int()
+        zbc = h.edata['zbc'].int()
         h.edata['h'] = self.e1(zac) + self.e2(zab) + self.e3(zbc)
 
         return self.e1(zac) + self.e2(zab) + self.e3(zbc)
