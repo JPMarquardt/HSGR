@@ -22,14 +22,14 @@ pre_eval_func = NoiseRegressionEval(noise = noise, k = k)
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
                         categorical_filter = categorical_filter,
-                        target = 'space_group',
+                        target = 'spg_number',
                         transform=pre_eval_func,
                         collate = collate_noise,
                         ).dataset
 
-model_name = 'SchNet-AtomNoise-Spg225-1L'
-model_path = 'models/24-06-10/'
-model = Alignn(num_classes=1, num_layers=1, hidden_features=64, radial_features=256)
+model_name = 'Alignn-AtomNoise-Spg225-1L'
+model_path = 'models/24-06-21/'
+model = SchNet(num_classes=1, num_layers=2, hidden_features=64, radial_features=256)
 loss_func = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 

@@ -7,7 +7,7 @@ from sinn.train.train import train_model
 from sinn.train.transforms import NoiseRegressionEval
 
 n_atoms = 2
-spg = (225, 220)
+spg = (225, 221, 220)
 categorical_filter = ([True],['spg_number'],[spg])
 
 batch_size = 8
@@ -43,7 +43,7 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
                         ).dataset
 
 
-model_name = 'SchNet-AtomNoise-Spg225-2L'
+model_name = 'SchNet-AtomNoise-Spg3-2L'
 model_path = 'models/24-06-16/'
 class SchNet_Multihead(nn.Module):
     def __init__(self, num_classes, num_layers, hidden_features, radial_features):
