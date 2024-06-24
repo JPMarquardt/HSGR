@@ -7,7 +7,7 @@ from sinn.train.train import train_model
 from sinn.train.transforms import NoiseRegressionEval
 
 n_atoms = 2
-spg = (225, 221, 220)
+spg = (225, 220)
 categorical_filter = ([True],['spg_number'],[spg])
 
 batch_size = 8
