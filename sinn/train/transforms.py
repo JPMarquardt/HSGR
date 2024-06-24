@@ -1,14 +1,15 @@
 import nfflr
 import torch
 import torch.nn as nn
+from math import ceil
 
 from sinn.graph.graph import create_supercell, create_labeled_supercell, create_knn_graph, lattice_plane_slicer, create_periodic_graph
-from sinn.noise.gaussian_noise import noise_regression
+from sinn.train.utils import gaussian_noise
 from sinn.simulation.simulation import box_filter
 
 from typing import Callable
 
-def noise_regression_prep(a: nfflr.Atoms, n_target_atoms: int, noise: Callable = None, k: int = 9, line_graph: bool = False):
+def noise_regression_prep(a: nfflr.Atoms, k: int, n_target_atoms: int, noise: float):
     coords = a.positions
     lattice = a.cell
     numbers = a.numbers
@@ -16,25 +17,23 @@ def noise_regression_prep(a: nfflr.Atoms, n_target_atoms: int, noise: Callable =
     data = torch.matmul(coords, torch.inverse(lattice))
 
     replicates = (n_target_atoms / data.size()[0]) ** (1/3)
-    replicates = int(replicates)
+    replicates = ceil(replicates)
 
     miller_index = torch.randint(0, 4, (3,))
 
-    if noise is None:
-        noise = lambda x: x
-
     supercell = create_supercell(data, replicates)
-    sample_noise, supercell = noise_regression(supercell, noise)
-    supercell = lattice_plane_slicer(supercell, miller_index, replicates)
+    supercell = gaussian_noise(supercell, noise)
+    for _ in range(torch.randint(0, 3, (1,)).item()):
+        supercell = lattice_plane_slicer(supercell, miller_index, replicates)
     supercell = supercell @ lattice
     
     g = create_knn_graph(supercell, k=k)
     numbers = numbers.repeat(replicates**3)
     g.ndata['z'] = numbers
 
-    return g, sample_noise
+    return g
 
-def noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9,line_graph: bool = False):
+def noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
     data = a.positions
     lattice = a.cell
     numbers = a.numbers
@@ -60,18 +59,32 @@ def noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9,line_graph: bool = Fals
 
     return g
 
-class NoiseRegressionEval(nn.Module):
-    def __init__(self, noise, k, line_graph = False):
-        super(NoiseRegressionEval, self).__init__()
-        self.noise = noise
+class NoiseRegressionTrain(nn.Module):
+    """
+    finite repeating crystal structure for training noise regression
+    number of atoms in the crystal is randomly chosen between 1k and 5k
+    """
+    def __init__(self, k: int = 17, noise: Callable = None, crystal_size: Callable = None):
+        super(NoiseRegressionTrain, self).__init__()
         self.k = k
-        self.line_graph = line_graph
+
+        if noise is None:
+            noise = lambda: torch.rand(1)
+        if crystal_size is None:
+            crystal_size = lambda: torch.randint(150, 270, (1,))
+
+        self.noise = noise
+        self.crystal_size = crystal_size
 
     def forward(self, datapoint):
-        n_atoms = torch.randint(1, 5, (1,)) * 1000
-        return noise_regression_prep(datapoint, n_atoms, self.noise, self.k)
+        n_atoms = self.crystal_size()
+        noise = self.noise()
+        return noise_regression_prep(datapoint, self.k, n_atoms, noise), noise
     
 class SimulatedNoiseRegressionEval(nn.Module):
+    """
+    infinite repeating simulation box for evaluation of noise regression
+    """
     def __init__(self, k):
         super(SimulatedNoiseRegressionEval, self).__init__()
         self.k = k
