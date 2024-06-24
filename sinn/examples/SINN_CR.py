@@ -2,37 +2,22 @@ import torch.nn as nn
 import torch
 
 from sinn.dataset.dataset import FilteredAtomsDataset, collate_multihead_noise
-from sinn.model.model import SchNet, Alignn
+from sinn.model.schnet import SchNet_Multihead
 from sinn.train.train import train_model
-from sinn.train.transforms import NoiseRegressionEval
+from sinn.train.transforms import NoiseRegressionTrain
+from sinn.train.loss import RegressionClassificationLoss, find_class_weights
 
 n_atoms = 2
-spg = (225, 220)
+spg = list(range(220,231))
+print(spg)
 categorical_filter = ([True],['spg_number'],[spg])
 
 batch_size = 8
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 17
-noise = lambda x: 1 - torch.sqrt(1 - x**2)
-pre_eval_func = NoiseRegressionEval(noise = noise, k = k, line_graph=True)
-
-def custom_loss_func(output, target):
-    classification_pred = output[0]
-    classification_target = target[0]
-
-    class_weights = torch.tensor([1, 0.1]).unsqueeze(0).to(device)
-    weight = torch.sum(class_weights * classification_target, dim=1)
-
-    regression_pred = output[1].squeeze()
-    regression_target = target[1]
-
-    dataset_loss = nn.BCELoss()(classification_pred, classification_target)
-    noise_loss = nn.MSELoss()(regression_pred, regression_target)
-
-    penalty = 1 - regression_target
-    output = dataset_loss * penalty + noise_loss
-    return torch.mean(weight * output)
+noise = lambda: 1 - torch.sqrt(1 - torch.rand(1)**2)
+pre_eval_func = NoiseRegressionTrain(noise = noise, k = k)
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
@@ -42,29 +27,21 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
                         collate = collate_multihead_noise,
                         ).dataset
 
+class_weights = find_class_weights(dataset, 'spg_number')
+n_classes = class_weights.size(0)
+print(class_weights)
+
 num_layers = 8
-model_name = f'SchNet-AtomNoise-Spg3-{num_layers}L'
+
+model = SchNet_Multihead(num_classes = n_classes, num_layers = 2, hidden_features = 64, radial_features = 256)
+model_type_name = type(model).__name__
+
+model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{n_classes}'
 model_path = 'models/24-06-16/'
-class SchNet_Multihead(nn.Module):
-    def __init__(self, num_classes, num_layers, hidden_features, radial_features):
-        super(SchNet_Multihead, self).__init__()
-        self.model = SchNet(num_classes=num_classes+1, num_layers=num_layers, hidden_features=hidden_features, radial_features=radial_features)
-        self.classifier = nn.Linear(num_classes+1, num_classes)
-        self.regression = nn.Linear(num_classes+1, 1)
 
-        self.sm = nn.Softmax(dim=1)
-    def forward(self, x):
-        x = self.model(x)
+loss_func = RegressionClassificationLoss(num_classes=n_classes, class_weights=class_weights, device=device)
 
-        reg_pred = self.regression(x)
 
-        class_pred = self.classifier(x)
-        class_pred = self.sm(class_pred)
-        
-        return class_pred, reg_pred
-
-model = SchNet_Multihead(num_classes = len(spg), num_layers = 2, hidden_features = 64, radial_features = 256)
-loss_func = custom_loss_func
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 train_model(model = model,
             dataset = dataset,

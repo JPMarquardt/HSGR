@@ -87,6 +87,7 @@ class FilteredAtomsDataset():
         if target == 'spg_number':
             unique_spg = dataset['spg_number'].unique()
             unique_spg.sort()
+            print(f'Unique SPG numbers: {unique_spg}')
 
             original_spg = dataset['spg_number']
             dataset['spg_number'] = dataset['spg_number'].astype(object)
@@ -131,48 +132,6 @@ def arbitrary_feat(dataset):
 
     return dataset
 
-def collate_general(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
-    """Dataloader helper to batch graphs cross `samples`.
-
-    Forces get collated into a graph batch
-    by concatenating along the atoms dimension
-
-    energy and stress are global targets (properties of the whole graph)
-    total energy is a scalar, stess is a rank 2 tensor
-
-    for SPG or other categorization
-    """
-
-    if isinstance(samples[0][0], tuple):
-        graphs, targets = map(list, zip(*samples))
-        g, lg = map(list, zip(*graphs))
-        target_block = torch.stack(targets, 0)
-        return (dgl.batch(g), dgl.batch(lg)), target_block
-    
-    graphs, targets = map(list, zip(*samples))
-    target_block = torch.stack(targets, 0)
-    return dgl.batch(graphs), target_block
-
-def collate_multihead_noise(batch: Tuple[Tuple[torch.Tensor, dgl.DGLGraph]]):
-    """
-    Create a batch of DGLGraphs
-    """
-    batch, classification_target_list = zip(*batch)
-    g_list, regression_target_list = map(list, zip(*batch))
-    bg = dgl.batch(g_list)
-    target = (torch.stack(classification_target_list), torch.cat(regression_target_list))
-    return bg, target
-
-def collate_noise(batch: Tuple[Tuple[torch.Tensor, dgl.DGLGraph]]):
-    """
-    Create a batch of DGLGraphs
-    """
-    batch, dataset_target_list = zip(*batch)
-    g_list, noise_target_list = map(list, zip(*batch, dataset_target_list))
-    bg = dgl.batch(g_list)
-    target = torch.cat(noise_target_list)
-    return bg, target
-
 def universe2df(trajectory: Universe, **kwargs) -> pd.DataFrame:
     """
     Convert a GSD file to a pandas dataframe
@@ -212,3 +171,45 @@ def universe2df(trajectory: Universe, **kwargs) -> pd.DataFrame:
 
     df = pd.DataFrame(list(zip(atoms_list,target,jid_list)), columns = ['atoms','target','jid'])
     return df
+
+def collate_general(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
+    """Dataloader helper to batch graphs cross `samples`.
+
+    Forces get collated into a graph batch
+    by concatenating along the atoms dimension
+
+    energy and stress are global targets (properties of the whole graph)
+    total energy is a scalar, stess is a rank 2 tensor
+
+    for SPG or other categorization
+    """
+
+    if isinstance(samples[0][0], tuple):
+        graphs, targets = map(list, zip(*samples))
+        g, lg = map(list, zip(*graphs))
+        target_block = torch.stack(targets, 0)
+        return (dgl.batch(g), dgl.batch(lg)), target_block
+    
+    graphs, targets = map(list, zip(*samples))
+    target_block = torch.stack(targets, 0)
+    return dgl.batch(graphs), target_block
+
+def collate_multihead_noise(batch: Tuple[Tuple[torch.Tensor, dgl.DGLGraph]]):
+    """
+    Create a batch of DGLGraphs
+    """
+    batch, classification_target_list = zip(*batch)
+    g_list, regression_target_list = map(list, zip(*batch))
+    bg = dgl.batch(g_list)
+    target = (torch.stack(classification_target_list), torch.cat(regression_target_list))
+    return bg, target
+
+def collate_noise(batch: Tuple[Tuple[torch.Tensor, dgl.DGLGraph]]):
+    """
+    Create a batch of DGLGraphs
+    """
+    batch, classification_target_list = zip(*batch)
+    g_list, regression_target_list = map(list, zip(*batch))
+    bg = dgl.batch(g_list)
+    target = torch.cat(regression_target_list)
+    return bg, target

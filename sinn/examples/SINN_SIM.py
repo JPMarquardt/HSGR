@@ -6,15 +6,11 @@ from MDAnalysis.coordinates.GSD import GSDReader
 from MDAnalysis import Universe
 
 from sinn.dataset.dataset import FilteredAtomsDataset, collate_noise
-from sinn.model.model import SchNet, Alignn
+from sinn.model.schnet import SchNet_Multihead
 from sinn.train.train import test_model
 from sinn.train.transforms import SimulatedNoiseRegressionEval
 
-n_atoms = 2
-spg = ('225',)
-categorical_filter = ([True],['spg_number'],[spg])
 
-batch_size = 8
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 17
@@ -23,23 +19,7 @@ pre_eval_func = SimulatedNoiseRegressionEval(k = k)
 model_name = 'SchNet-AtomNoise-Spg3-8L'
 model_path = 'models/24-06-16/'
 
-class SchNet_Multihead(nn.Module):
-    def __init__(self, num_classes, num_layers, hidden_features, radial_features):
-        super(SchNet_Multihead, self).__init__()
-        self.model = SchNet(num_classes=num_classes+1, num_layers=num_layers, hidden_features=hidden_features, radial_features=radial_features)
-        self.classifier = nn.Linear(num_classes+1, num_classes)
-        self.regression = nn.Linear(num_classes+1, 1)
 
-        self.sm = nn.Softmax(dim=1)
-    def forward(self, x):
-        x = self.model(x)
-
-        reg_pred = self.regression(x)
-
-        class_pred = self.classifier(x)
-        class_pred = self.sm(class_pred)
-        
-        return class_pred, reg_pred
     
 model = torch.load(model_path + model_name + '.pkl')
 

@@ -14,9 +14,6 @@ from . import train
 # layers
 from . import layers
 
-# noise
-from . import noise
-
 # graph
 from . import graph
 

@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 from sinn.dataset.dataset import FilteredAtomsDataset, collate_multihead_noise
-from sinn.model.model import SchNet, Alignn
+from HSGR.sinn.model.schnet import SchNet, Alignn
 from sinn.train.train import train_model
 from sinn.train.transforms import NoiseRegressionEval
 
