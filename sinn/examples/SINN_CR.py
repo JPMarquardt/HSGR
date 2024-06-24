@@ -42,8 +42,8 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
                         collate = collate_multihead_noise,
                         ).dataset
 
-
-model_name = 'SchNet-AtomNoise-Spg3-2L'
+num_layers = 3
+model_name = f'SchNet-AtomNoise-Spg3-{num_layers}L'
 model_path = 'models/24-06-16/'
 class SchNet_Multihead(nn.Module):
     def __init__(self, num_classes, num_layers, hidden_features, radial_features):
