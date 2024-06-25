@@ -7,7 +7,9 @@ def compute_bond_cosines(h):
     h.apply_edges(fn.u_dot_v('dr', 'dr', 'dr_dot_dr'))
     h.apply_edges(fn.u_mul_v('dr_norm', 'dr_norm', 'dr_norm_sq'))
 
-    h.edata['r'] = h.edata.pop('dr_dot_dr').squeeze() / h.edata.pop('dr_norm_sq')
+    r = h.edata.pop('dr_dot_dr').squeeze() / h.edata.pop('dr_norm_sq')
+    r = torch.nan_to_num(r, nan=0.0)
+    h.edata['r'] = r
     
 
 def check_in_center(nodes):
