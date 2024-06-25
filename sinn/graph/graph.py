@@ -81,7 +81,7 @@ def create_linegraph(g: dgl.DGLGraph):
     """
     Create a line graph from a graph
     """
-    h = dgl.transforms.line_graph(g)
+    h = dgl.transforms.line_graph(g, backtracking=False)
     h.ndata['dr'] = g.edata['dr']
     compute_bond_cosines(h)
     return h
