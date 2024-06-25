@@ -59,6 +59,33 @@ def noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
 
     return g
 
+def aperiodic_noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
+    data = a.positions
+    lattice = a.cell
+    numbers = a.numbers
+    replicates = 3
+
+    dx = 0.1 * torch.min(torch.norm(lattice, dim=1))
+    supercell, atom_id, cell_id = create_labeled_supercell(data, n=replicates, lattice=lattice)
+    numbers = numbers.repeat(replicates**3)
+    filt = box_filter(supercell, lattice, dx)
+
+    supercell = supercell[filt]
+    atom_id = atom_id[filt]
+    cell_id = cell_id[filt]
+    numbers = numbers[filt]
+
+    g = create_knn_graph(supercell, k=k)
+
+    g.ndata['z'] = numbers
+    g.ndata['atom_id'] = atom_id
+    g.ndata['cell_id'] = cell_id
+
+    g = create_knn_graph(g)
+
+    return g
+
+
 class NoiseRegressionTrain(nn.Module):
     """
     finite repeating crystal structure for training noise regression
@@ -81,13 +108,24 @@ class NoiseRegressionTrain(nn.Module):
         noise = self.noise()
         return noise_regression_prep(datapoint, self.k, n_atoms, noise), noise
     
-class SimulatedNoiseRegressionEval(nn.Module):
+class PeriodicNoiseRegressionEval(nn.Module):
     """
     infinite repeating simulation box for evaluation of noise regression
     """
     def __init__(self, k):
-        super(SimulatedNoiseRegressionEval, self).__init__()
+        super(PeriodicNoiseRegressionEval, self).__init__()
         self.k = k
 
     def forward(self, datapoint):
         return noise_regression_sim_prep(datapoint, self.k)
+    
+class APeriodicNoiseRegressionEval(nn.Module):
+    """
+    infinite repeating simulation box for evaluation of noise regression
+    """
+    def __init__(self, k):
+        super(APeriodicNoiseRegressionEval, self).__init__()
+        self.k = k
+
+    def forward(self, datapoint):
+        return aperiodic_noise_regression_sim_prep(datapoint, self.k)

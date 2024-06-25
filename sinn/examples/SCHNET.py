@@ -1,5 +1,7 @@
 import torch.nn as nn
 import torch
+from datetime import datetime
+import os
 
 from sinn.dataset.dataset import FilteredAtomsDataset, collate_multihead_noise
 from sinn.model.schnet import SchNet_Multihead
@@ -27,19 +29,23 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
                         ).dataset
 
 class_weights = find_class_weights(dataset, 'spg_number')
-n_classes = class_weights.size(0)
 print(class_weights)
 
+num_classes = class_weights.size(0)
 num_layers = 8
 
-model = SchNet_Multihead(num_classes = n_classes, num_layers = num_layers, hidden_features = 64, radial_features = 256)
+model = SchNet_Multihead(num_classes = num_classes, num_layers = num_layers, hidden_features = 64, radial_features = 256)
 model_type_name = type(model).__name__
 
-model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{n_classes}'
-model_path = 'models/24-06-25/'
+date = datetime.now().strftime("%y-%m-%d")
+model_path = f'models/{date}/'
+if not os.path.exists(model_path):
+    os.makedirs(model_path)
+
+model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{num_classes}-n2'
 print(model_name)
 
-loss_func = RegressionClassificationLoss(num_classes=n_classes, class_weights=class_weights, device=device)
+loss_func = RegressionClassificationLoss(num_classes=num_classes, class_weights=class_weights, device=device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=20)

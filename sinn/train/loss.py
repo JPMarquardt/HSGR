@@ -6,7 +6,7 @@ class RegressionClassificationLoss(nn.Module):
     """
     Custom loss function for combined regression and classification tasks
     """
-    def __init__(self, num_classes, class_weights = None, device = None, alpha = 1.0):
+    def __init__(self, num_classes, class_weights = None, device = None, alpha = 0.5):
         super(RegressionClassificationLoss, self).__init__()
         self.num_classes = num_classes
 

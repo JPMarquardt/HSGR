@@ -8,13 +8,13 @@ from MDAnalysis import Universe
 from sinn.dataset.dataset import FilteredAtomsDataset, collate_noise
 from sinn.model.schnet import SchNet_Multihead
 from sinn.train.train import test_model
-from sinn.train.transforms import SimulatedNoiseRegressionEval
+from sinn.train.transforms import PeriodicNoiseRegressionEval
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 17
-pre_eval_func = SimulatedNoiseRegressionEval(k = k)
+pre_eval_func = PeriodicNoiseRegressionEval(k = k)
 
 model_name = 'SchNet-AtomNoise-Spg3-8L'
 model_path = 'models/24-06-16/'
