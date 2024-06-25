@@ -78,3 +78,20 @@ class Alignn(nn.Module):
             return F.log_softmax(x, dim=1)
         
         return x.squeeze(1)
+
+class Alignn_Multihead(nn.Module):
+    def __init__(self, num_classes, num_layers, hidden_features, radial_features):
+        super(Alignn_Multihead, self).__init__()
+        self.model = Alignn(num_classes=num_classes+1, num_layers=num_layers, hidden_features=hidden_features, radial_features=radial_features)
+        self.classifier = MLP(num_classes+1, num_classes)
+        self.regression = MLP(num_classes+1, 1)
+
+        self.sm = nn.Softmax(dim=1)
+    def forward(self, x):
+        x = self.model(x)
+        reg_pred = self.regression(x)
+        class_pred = self.classifier(x)
+        
+        class_pred = self.sm(class_pred)
+        
+        return class_pred, reg_pred
