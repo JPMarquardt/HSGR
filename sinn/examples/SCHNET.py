@@ -36,7 +36,7 @@ model = SchNet_Multihead(num_classes = n_classes, num_layers = num_layers, hidde
 model_type_name = type(model).__name__
 
 model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{n_classes}'
-model_path = 'models/24-06-16/'
+model_path = 'models/24-06-25/'
 print(model_name)
 
 loss_func = RegressionClassificationLoss(num_classes=n_classes, class_weights=class_weights, device=device)
