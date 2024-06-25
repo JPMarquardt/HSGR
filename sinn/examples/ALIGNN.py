@@ -39,9 +39,9 @@ model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{n_classes}'
 model_path = 'models/24-06-16/'
 
 loss_func = RegressionClassificationLoss(num_classes=n_classes, class_weights=class_weights, device=device)
-
-
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=50)
+
 train_model(model = model,
             dataset = dataset,
             loss_func = loss_func,

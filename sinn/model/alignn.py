@@ -18,7 +18,7 @@ class Alignn(nn.Module):
         self.radial_embedding = radial_basis_func(hidden_features, (0, 1.0))
         self.cutoff = SmoothCutoff(1.0)
 
-        self.node_embedding = torch.ones(hidden_features)
+        self.register_buffer('node_embedding', torch.ones(hidden_features), persistent=False)
         self.edge_embedding = color_invariant_duplet(hidden_features)
         self.triplet_embedding = color_invariant_triplet(hidden_features)
 
