@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 from sinn.dataset.dataset import FilteredAtomsDataset, collate_multihead_noise
-from sinn.model.alignn import Alignn_Multihead
+from sinn.model.schnet import SchNet_Multihead
 from sinn.train.train import train_model
 from sinn.train.transforms import NoiseRegressionTrain
 from sinn.train.loss import RegressionClassificationLoss, find_class_weights
@@ -32,7 +32,7 @@ print(class_weights)
 
 num_layers = 8
 
-model = Alignn_Multihead(num_classes = n_classes, num_layers = num_layers, hidden_features = 64, radial_features = 256)
+model = SchNet_Multihead(num_classes = n_classes, num_layers = num_layers, hidden_features = 64, radial_features = 256)
 model_type_name = type(model).__name__
 
 model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{n_classes}'
