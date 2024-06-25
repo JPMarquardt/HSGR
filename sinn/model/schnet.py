@@ -51,7 +51,7 @@ class SchNet(nn.Module):
         self.get_bf_cutoff(g)
 
         n = g.number_of_nodes()
-        print(self.node_embedding.device)
+
         g.ndata['h'] = self.node_embedding.repeat(n, 1)
         g.edata['h'] = self.edge_embedding(g)
 
