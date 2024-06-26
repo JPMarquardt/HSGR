@@ -16,11 +16,9 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 pre_eval_func = PeriodicNoiseRegressionEval(k = k)
 
-model_name = 'SchNet-AtomNoise-Spg3-8L'
-model_path = 'models/24-06-16/'
+model_name = 'SchNet_Multihead-k17-L8-Spg7-n2'
+model_path = 'models/24-06-25/'
 
-
-    
 model = torch.load(model_path + model_name + '.pkl')
 
 dataset_names = ['CsCl', 'Th3P4', 'aggr']
