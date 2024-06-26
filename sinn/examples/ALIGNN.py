@@ -10,7 +10,8 @@ from sinn.train.transforms import NoiseRegressionTrain
 from sinn.train.loss import RegressionClassificationLoss, find_class_weights
 
 n_atoms = 2
-spg = list(range(221,231))
+#spg = list(range(221,231))
+spg = [220, 225]
 categorical_filter = ([True],['spg_number'],[spg])
 
 batch_size = 8
@@ -42,7 +43,8 @@ model_path = f'models/{date}/'
 if not os.path.exists(model_path):
     os.makedirs(model_path)
 
-model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{num_classes}-n2'
+model_num = 3
+model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{num_classes}-n{model_num}'
 print(model_name)
 
 loss_func = RegressionClassificationLoss(num_classes=num_classes, class_weights=class_weights, device=device)
@@ -51,7 +53,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=20)
 scheduler2 = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9, last_epoch=-1)
 scheduler3 = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15, eta_min=0.0001)
-scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, [scheduler1, scheduler2,scheduler3], milestones=[20, 40])
+scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, [scheduler1, scheduler2,scheduler3], milestones=[20, 55])
 
 train_model(model = model,
             dataset = dataset,
