@@ -43,7 +43,8 @@ model_path = f'models/{date}/'
 if not os.path.exists(model_path):
     os.makedirs(model_path)
 
-model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{num_classes}-n2'
+model_num = 3
+model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{num_classes}-n{model_num}'
 print(model_name)
 
 loss_func = RegressionClassificationLoss(num_classes=num_classes, class_weights=class_weights, device=device)
