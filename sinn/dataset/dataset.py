@@ -1,5 +1,6 @@
 from nfflr.data.dataset import AtomsDataset, Atoms #maybe remove this dependence for maybe just JARVIS
 from jarvis.core.atoms import Atoms as jAtoms
+from sinn.dataset.space_groups import spg_properties
 
 import torch
 import dgl
@@ -104,6 +105,10 @@ class FilteredAtomsDataset():
                 spg_tensor_list.index = with_spg.index
 
                 dataset.loc[index, 'spg_number'] = spg_tensor_list
+        elif target == 'international_number':
+            spg = spg_properties()
+            spg2int = spg.space_group2international_number
+            dataset['international_number'] = dataset['spg_number'].map(spg2int)
 
         if sparsity is not None:
             dataset = dataset[dataset.index % sparsity == 1]
@@ -142,24 +147,29 @@ def universe2df(trajectory: Universe, **kwargs) -> pd.DataFrame:
         target = kwargs['target']
     
     atom_types = trajectory.atoms.types
-    lattice_parameters = torch.tensor(trajectory.dimensions)
-    abc = lattice_parameters[:3]
-    angles = lattice_parameters[3:]
+    
+    if trajectory.dimensions is not None:
+        lattice_parameters = torch.tensor(trajectory.dimensions)
+        abc = lattice_parameters[:3]
+        angles = lattice_parameters[3:]
 
-    pi = torch.tensor(np.pi)
-    alpha = angles[0] * (pi / 180)
-    beta = angles[1] * (pi / 180)
-    gamma = angles[2] * (pi / 180)
+        pi = torch.tensor(np.pi)
+        alpha = angles[0] * (pi / 180)
+        beta = angles[1] * (pi / 180)
+        gamma = angles[2] * (pi / 180)
 
-    cx = torch.cos(beta)
-    cy = (torch.cos(alpha) - torch.cos(beta) * torch.cos(gamma)) / torch.sin(gamma)
-    cz = torch.sqrt(1 - cx**2 - cy**2)
+        cx = torch.cos(beta)
+        cy = (torch.cos(alpha) - torch.cos(beta) * torch.cos(gamma)) / torch.sin(gamma)
+        cz = torch.sqrt(1 - cx**2 - cy**2)
 
-    a1 = abc[0] * torch.tensor([1, 0, 0])
-    a2 = abc[1] * torch.tensor([torch.cos(gamma), torch.sin(gamma), 0])
-    a3 = abc[2] * torch.tensor([cx, cy, cz])
+        a1 = abc[0] * torch.tensor([1, 0, 0])
+        a2 = abc[1] * torch.tensor([torch.cos(gamma), torch.sin(gamma), 0])
+        a3 = abc[2] * torch.tensor([cx, cy, cz])
 
-    lattice_vectors = torch.stack([a1, a2, a3])
+        lattice_vectors = torch.stack([a1, a2, a3])
+
+    else:
+        lattice_vectors = torch.eye(3)
 
     atoms_list = []
     jid_list = []
