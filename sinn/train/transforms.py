@@ -19,11 +19,10 @@ def noise_regression_prep(a: nfflr.Atoms, k: int, n_target_atoms: int, noise: fl
     replicates = (n_target_atoms / data.size()[0]) ** (1/3)
     replicates = ceil(replicates)
 
-    miller_index = torch.randint(0, 4, (3,))
-
     supercell = create_supercell(data, replicates)
     supercell = gaussian_noise(supercell, noise)
     for _ in range(torch.randint(0, 3, (1,)).item()):
+        miller_index = torch.randint(0, 4, (3,))
         supercell = lattice_plane_slicer(supercell, miller_index, replicates)
     supercell = supercell @ lattice
     
