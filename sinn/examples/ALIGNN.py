@@ -18,6 +18,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 17
 noise = lambda: 1 - torch.sqrt(1 - torch.rand(1)**2)
+size = lambda: torch.randint(500, 2500, (1,))
+
 pre_eval_func = NoiseRegressionTrain(noise = noise, k = k)
 
 dataset = FilteredAtomsDataset(source = "dft_3d",

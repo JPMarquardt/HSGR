@@ -81,7 +81,7 @@ class NoiseRegressionTrain(nn.Module):
         if noise is None:
             noise = lambda: torch.rand(1)
         if crystal_size is None:
-            crystal_size = lambda: torch.randint(150, 270, (1,))
+            crystal_size = lambda: 1000 * torch.randint(1, 3, (1,))
 
         self.noise = noise
         self.crystal_size = crystal_size
