@@ -18,10 +18,8 @@ batch_size = 8
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 17
-noise = lambda: 1 - torch.sqrt(1 - torch.rand(1)**2)
-crystal_size = lambda: torch.randint(500, 2500, (1,))
 
-pre_eval_func = PeriodicClassificationTrain(noise = noise, crystal_size=crystal_size, k = k)
+pre_eval_func = PeriodicClassificationTrain(k = k)
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
