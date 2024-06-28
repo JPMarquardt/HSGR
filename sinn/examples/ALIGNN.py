@@ -11,7 +11,6 @@ from sinn.train.loss import RegressionClassificationLoss, find_class_weights
 
 n_atoms = 2
 spg = list(range(195,231))
-spg = [220, 225]
 
 categorical_filter = ([True],['spg_number'],[spg])
 
@@ -21,16 +20,17 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 
 pre_eval_func = PeriodicClassificationTrain(k = k)
+target = 'international_number'
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
                         categorical_filter = categorical_filter,
-                        target = 'spg_number',
+                        target = target,
                         transform=pre_eval_func,
                         collate = collate_multihead_noise,
                         ).dataset
 
-class_weights = find_class_weights(dataset, 'spg_number')
+class_weights = find_class_weights(dataset, target)
 print(class_weights)
 
 num_classes = class_weights.size(0)
