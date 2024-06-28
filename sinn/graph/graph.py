@@ -110,14 +110,14 @@ def create_knn_graph(data: torch.Tensor, k: int):
     
     return g
 
-def create_periodic_graph(g):
+def create_periodic_graph(g, center: int = 1):
     """
     Create a periodic graph from a graph
     """
     cell_id = g.ndata.pop('cell_id')
     g.ndata['atom_id'] = g.ndata['atom_id'].float()
 
-    in_center = torch.all(torch.eq(cell_id, 1), dim=1)
+    in_center = torch.all(torch.eq(cell_id, center), dim=1)
 
     g.ndata['in_center'] = in_center.float()
     gr = g.reverse(copy_edata=True)

@@ -56,7 +56,7 @@ class FilteredAtomsDataset():
 
         
         print(f'Taking dataset with size {dataset.shape}')
-        if 'spg_number' in dataset.columns:
+        if 'spg_number' in dataset.columns and isinstance(dataset.loc[0, 'spg_number'], str):
             dataset['spg_number'] = dataset['spg_number'].str.extract('(\d+)').astype(int)
 
         if atom_types:
@@ -86,29 +86,14 @@ class FilteredAtomsDataset():
                 dataset.reset_index(inplace=True)
 
         if target == 'spg_number':
-            unique_spg = dataset['spg_number'].unique()
-            unique_spg.sort()
-            print(f'Unique SPG numbers: {unique_spg}')
+            dataset = one_hot_encode(dataset, 'spg_number')
 
-            original_spg = dataset['spg_number']
-            dataset['spg_number'] = dataset['spg_number'].astype(object)
-
-            for i, spg in enumerate(unique_spg):
-                spg_tensor = torch.zeros(len(unique_spg), dtype=torch.float32)
-                spg_tensor[i] = 1.0
-
-                index = original_spg == spg
-                with_spg = dataset.loc[index , 'spg_number']
-
-                spg_tensor_list = [spg_tensor] * len(with_spg)
-                spg_tensor_list = pd.Series(spg_tensor_list)
-                spg_tensor_list.index = with_spg.index
-
-                dataset.loc[index, 'spg_number'] = spg_tensor_list
         elif target == 'international_number':
             spg = spg_properties()
             spg2int = spg.space_group2international_number
             dataset['international_number'] = dataset['spg_number'].map(spg2int)
+
+            dataset = one_hot_encode(dataset, 'international_number')
 
         if sparsity is not None:
             dataset = dataset[dataset.index % sparsity == 1]
@@ -180,6 +165,31 @@ def universe2df(trajectory: Universe, **kwargs) -> pd.DataFrame:
         jid_list.append(id)
 
     df = pd.DataFrame(list(zip(atoms_list,target,jid_list)), columns = ['atoms','target','jid'])
+    return df
+
+def one_hot_encode(df: pd.DataFrame, column: str) -> pd.DataFrame:
+    """
+    One hot encode a column of a pandas dataframe
+    """
+    unique_spg = df[column].unique()
+    unique_spg.sort()
+    print(f'Unique {column}: {unique_spg}')
+
+    original_spg = df[column]
+    df[column] = df[column].astype(object)
+
+    for i, spg in enumerate(unique_spg):
+        spg_tensor = torch.zeros(len(unique_spg), dtype=torch.float32)
+        spg_tensor[i] = 1.0
+
+        index = original_spg == spg
+        with_spg = df.loc[index , column]
+
+        spg_tensor_list = [spg_tensor] * len(with_spg)
+        spg_tensor_list = pd.Series(spg_tensor_list)
+        spg_tensor_list.index = with_spg.index
+
+        df.loc[index, column] = spg_tensor_list
     return df
 
 def collate_general(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):

@@ -73,17 +73,11 @@ def periodic_classification_prep(a: nfflr.Atoms, k: int = 9):
     numbers = a.numbers
 
     n_atoms = data.size()[0]
-    replicates = torch.ceil((k / n_atoms) ** (1/3) / 2).item() * 2 + 1
+    replicates = ceil((k / n_atoms) ** (1/3) / 2) * 2 + 1
     center = (replicates - 1) / 2
 
     supercell, atom_id, cell_id = create_labeled_supercell(data, n=replicates, lattice=lattice)
     numbers = numbers.repeat(replicates**3)
-    filt = small_box_filter(supercell, lattice, center=center)
-
-    supercell = supercell[filt]
-    atom_id = atom_id[filt]
-    cell_id = cell_id[filt]
-    numbers = numbers[filt]
 
     g = create_knn_graph(supercell, k=k)
 
@@ -91,7 +85,7 @@ def periodic_classification_prep(a: nfflr.Atoms, k: int = 9):
     g.ndata['atom_id'] = atom_id
     g.ndata['cell_id'] = cell_id
 
-    g = create_periodic_graph(g)
+    g = create_periodic_graph(g, center=center)
 
     return g
 
@@ -148,4 +142,4 @@ class PeriodicClassificationTrain(nn.Module):
         self.k = k
 
     def forward(self, datapoint):
-        return periodic_classification_prep(datapoint, self.k), 0
+        return periodic_classification_prep(datapoint, self.k), torch.zeros([1])
