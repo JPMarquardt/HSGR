@@ -6,7 +6,7 @@ import os
 from sinn.dataset.dataset import FilteredAtomsDataset, collate_multihead_noise
 from sinn.model.alignn import Alignn_Multihead
 from sinn.train.train import train_model
-from sinn.train.transforms import NoiseRegressionTrain
+from sinn.train.transforms import NoiseRegressionTrain, PeriodicClassificationTrain
 from sinn.train.loss import RegressionClassificationLoss, find_class_weights
 
 n_atoms = 2
@@ -20,7 +20,7 @@ k = 17
 noise = lambda: 1 - torch.sqrt(1 - torch.rand(1)**2)
 crystal_size = lambda: torch.randint(500, 2500, (1,))
 
-pre_eval_func = NoiseRegressionTrain(noise = noise, crystal_size=crystal_size, k = k)
+pre_eval_func = PeriodicClassificationTrain(noise = noise, crystal_size=crystal_size, k = k)
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
