@@ -3,9 +3,8 @@ import torch
 import torch.nn as nn
 from math import ceil
 
-from sinn.graph.graph import create_supercell, create_labeled_supercell, create_knn_graph, lattice_plane_slicer, create_periodic_graph
+from sinn.graph.graph import create_supercell, create_labeled_supercell, create_knn_graph, lattice_plane_slicer, create_periodic_graph, big_box_filter, small_box_filter
 from sinn.train.utils import gaussian_noise
-from sinn.simulation.simulation import box_filter
 
 from typing import Callable
 
@@ -41,7 +40,7 @@ def noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
     dx = 0.1 * torch.min(torch.norm(lattice, dim=1))
     supercell, atom_id, cell_id = create_labeled_supercell(data, n=replicates, lattice=lattice)
     numbers = numbers.repeat(replicates**3)
-    filt = box_filter(supercell, lattice, dx)
+    filt = big_box_filter(supercell, lattice, dx)
 
     supercell = supercell[filt]
     atom_id = atom_id[filt]
@@ -68,6 +67,33 @@ def aperiodic_noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
 
     return g
 
+def periodic_classification_prep(a: nfflr.Atoms, k: int = 9):
+    data = a.positions
+    lattice = a.cell
+    numbers = a.numbers
+
+    n_atoms = data.size()[0]
+    replicates = torch.ceil((k / n_atoms) ** (1/3) / 2).item() * 2 + 1
+    center = (replicates - 1) / 2
+
+    supercell, atom_id, cell_id = create_labeled_supercell(data, n=replicates, lattice=lattice)
+    numbers = numbers.repeat(replicates**3)
+    filt = small_box_filter(supercell, lattice, center=center)
+
+    supercell = supercell[filt]
+    atom_id = atom_id[filt]
+    cell_id = cell_id[filt]
+    numbers = numbers[filt]
+
+    g = create_knn_graph(supercell, k=k)
+
+    g.ndata['z'] = numbers
+    g.ndata['atom_id'] = atom_id
+    g.ndata['cell_id'] = cell_id
+
+    g = create_periodic_graph(g)
+
+    return g
 
 class NoiseRegressionTrain(nn.Module):
     """
@@ -112,3 +138,14 @@ class APeriodicNoiseRegressionEval(nn.Module):
 
     def forward(self, datapoint):
         return aperiodic_noise_regression_sim_prep(datapoint, self.k)
+    
+class PeriodicClassificationTrain(nn.Module):
+    """
+    infinite repeating simulation box for training periodic classification (no noise)
+    """
+    def __init__(self, k: int = 17):
+        super(PeriodicClassificationTrain, self).__init__()
+        self.k = k
+
+    def forward(self, datapoint):
+        return periodic_classification_prep(datapoint, self.k)
