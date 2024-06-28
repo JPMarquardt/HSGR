@@ -11,7 +11,7 @@ from sinn.train.loss import RegressionClassificationLoss, find_class_weights
 
 n_atoms = 2
 spg = list(range(195,231))
-spg = [220, 221, 225]
+spg = [220, 225]
 categorical_filter = ([True],['spg_number'],[spg])
 
 batch_size = 8
@@ -45,7 +45,7 @@ model_path = f'models/{date}/'
 if not os.path.exists(model_path):
     os.makedirs(model_path)
 
-model_num = 5
+model_num = 6
 model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{num_classes}-n{model_num}'
 print(model_name)
 
