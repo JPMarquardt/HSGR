@@ -148,4 +148,4 @@ class PeriodicClassificationTrain(nn.Module):
         self.k = k
 
     def forward(self, datapoint):
-        return periodic_classification_prep(datapoint, self.k)
+        return periodic_classification_prep(datapoint, self.k), 0
