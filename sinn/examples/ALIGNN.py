@@ -11,6 +11,8 @@ from sinn.train.loss import RegressionClassificationLoss, find_class_weights
 
 n_atoms = 2
 spg = list(range(195,231))
+spg = [220, 225]
+
 categorical_filter = ([True],['spg_number'],[spg])
 
 batch_size = 8
