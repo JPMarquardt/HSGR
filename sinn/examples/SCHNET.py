@@ -19,23 +19,24 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 17
 noise = lambda: 1 - torch.sqrt(1 - torch.rand(1)**2)
-crystal_size = lambda: torch.randint(500, 2500, (1,))
+crystal_size = lambda: torch.randint(1, 3, (1,))
 
 pre_eval_func = NoiseRegressionTrain(noise = noise, crystal_size=crystal_size, k = k)
+target = 'spg_number'
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
                         categorical_filter = categorical_filter,
-                        target = 'spg_number',
+                        target = target,
                         transform=pre_eval_func,
                         collate = collate_multihead_noise,
                         ).dataset
 
-class_weights = find_class_weights(dataset, 'spg_number')
+class_weights = find_class_weights(dataset, target)
 print(class_weights)
 
 num_classes = class_weights.size(0)
-num_layers = 8
+num_layers = 4
 
 model = SchNet_Multihead(num_classes = num_classes, num_layers = num_layers, hidden_features = 64, radial_features = 256)
 model_type_name = type(model).__name__
@@ -50,7 +51,7 @@ model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{num_classes}-n{model_num
 print(model_name)
 
 loss_func = RegressionClassificationLoss(num_classes=num_classes, class_weights=class_weights, device=device)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.002)
 
 scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=20)
 scheduler2 = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9, last_epoch=-1)
@@ -67,6 +68,8 @@ train_model(model = model,
             model_name=model_name,
             save_path = model_path,
             device = device)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
 
 train_model(model = model,
             dataset = dataset,
