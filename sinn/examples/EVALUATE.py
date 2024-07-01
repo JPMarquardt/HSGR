@@ -22,13 +22,14 @@ model_path = 'models/24-06-28/'
 model = torch.load(model_path + model_name + '.pkl')
 
 dataset_names = ['CsCl.gsd', 'Th3P4.gsd', 'aggr.gsd','expr.xyz']
-for name in dataset_names:
+sparsity = [10, 10, 10, 1]
+for n, name in enumerate(dataset_names):
     dataset = Universe(f'./test_traj/{name}')
 
     dataset = FilteredAtomsDataset(source = dataset,
                                 transform=pre_eval_func,
                                 target = 'target',
-                                sparsity=10).dataset
+                                sparsity=sparsity).dataset
 
 
     def hook_fn(module, input, output):

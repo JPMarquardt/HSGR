@@ -11,7 +11,6 @@ from sinn.train.loss import RegressionClassificationLoss, find_class_weights
 
 n_atoms = 2
 spg = list(range(195,231))
-spg = [220, 225]
 categorical_filter = ([True],['spg_number'],[spg])
 
 batch_size = 8
@@ -22,7 +21,7 @@ noise = lambda: 1 - torch.sqrt(1 - torch.rand(1)**2)
 crystal_size = lambda: torch.randint(1, 3, (1,))
 
 pre_eval_func = NoiseRegressionTrain(noise = noise, crystal_size=crystal_size, k = k)
-target = 'spg_number'
+target = 'international_number'
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
