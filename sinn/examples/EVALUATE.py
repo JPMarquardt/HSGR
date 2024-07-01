@@ -16,14 +16,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 pre_eval_func = PeriodicNoiseRegressionEval(k = k)
 
-model_name = 'SchNet_Multihead-k17-L8-Spg7-n2'
-model_path = 'models/24-06-25/'
+model_name = 'SchNet_Multihead-k17-L4-Spg2-n7'
+model_path = 'models/24-06-28/'
 
 model = torch.load(model_path + model_name + '.pkl')
 
-dataset_names = ['CsCl', 'Th3P4', 'aggr']
+dataset_names = ['CsCl.gsd', 'Th3P4.gsd', 'aggr.gsd','expr.xyz']
 for name in dataset_names:
-    dataset = Universe(f'./test_traj/{name}.gsd')
+    dataset = Universe(f'./test_traj/{name}')
 
     dataset = FilteredAtomsDataset(source = dataset,
                                 transform=pre_eval_func,
