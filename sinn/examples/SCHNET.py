@@ -9,6 +9,8 @@ from sinn.train.train import train_model
 from sinn.train.transforms import NoiseRegressionTrain
 from sinn.train.loss import RegressionClassificationLoss, find_class_weights
 
+date = datetime.now().strftime("%y-%m-%d")
+
 for alpha in [0.75, 0.5, 0.25, 0.1, 0.01]:
     n_atoms = 2
     spg = list(range(195,231))
@@ -41,7 +43,6 @@ for alpha in [0.75, 0.5, 0.25, 0.1, 0.01]:
     model = SchNet_Multihead(num_classes = num_classes, num_layers = num_layers, hidden_features = 64, radial_features = 256)
     model_type_name = type(model).__name__
 
-    date = datetime.now().strftime("%y-%m-%d")
     model_path = f'models/{date}/'
     if not os.path.exists(model_path):
         os.makedirs(model_path)
