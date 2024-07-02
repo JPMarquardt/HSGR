@@ -14,15 +14,26 @@ class RegressionClassificationLoss(nn.Module):
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         else:
             self.device = device
+
+
         if class_weights is None:
             self.class_weights = torch.ones(num_classes).to(self.device)
         else:
             self.class_weights = class_weights
-        self.alpha = alpha
-        self.beta = 1 - alpha
 
-        self.classification_loss = nn.BCELoss()
-        self.regression_loss = nn.MSELoss()
+        
+        if num_classes == 2:
+            classification_loss = nn.BCEWithLogitsLoss()
+        else:
+            classification_loss = nn.CrossEntropyLoss()
+
+        regression_loss = nn.MSELoss()
+        
+        if alpha > 1 or alpha < 0:
+            raise ValueError("Alpha must be between 0 and 1")
+
+        self.classification_loss = lambda x: classification_loss(x) * alpha
+        self.regression_loss = lambda x: regression_loss(x) * (1 - alpha)
 
     def forward(self, output, target):
         classification_pred = output[0]
@@ -38,7 +49,7 @@ class RegressionClassificationLoss(nn.Module):
         regression_loss = self.regression_loss(regression_pred, regression_target)
 
         penalty = 1 - regression_target
-        output = classification_loss * penalty * self.beta + regression_loss * self.alpha
+        output = classification_loss * penalty + regression_loss
         return torch.mean(weight * output)
 
 def find_class_weights(dataset, target: str):
