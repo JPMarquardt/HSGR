@@ -32,8 +32,8 @@ class RegressionClassificationLoss(nn.Module):
         if alpha > 1 or alpha < 0:
             raise ValueError("Alpha must be between 0 and 1")
 
-        self.classification_loss = lambda x: classification_loss(x) * alpha
-        self.regression_loss = lambda x: regression_loss(x) * (1 - alpha)
+        self.classification_loss = lambda pred, y: classification_loss(pred, y) * alpha
+        self.regression_loss = lambda pred, y: regression_loss(pred, y) * (1 - alpha)
 
     def forward(self, output, target):
         classification_pred = output[0]
