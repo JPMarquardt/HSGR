@@ -21,7 +21,7 @@ for alpha in [0.75, 0.5, 0.25, 0.1, 0.01]:
 
     k = 17
     noise = lambda: 1 - torch.sqrt(1 - torch.rand(1)**2)
-    crystal_size = lambda: torch.randint(1, 3, (1,))
+    crystal_size = lambda: torch.randint(1, 3, (1,)) * 1000
 
     pre_eval_func = NoiseRegressionTrain(noise = noise, crystal_size=crystal_size, k = k)
     target = 'international_number'

@@ -16,20 +16,20 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 pre_eval_func = PeriodicNoiseRegressionEval(k = k)
 
-model_name = 'Alignn_Multihead-k17-L2-Spg5-n6'
-model_path = 'models/24-06-28/'
+model_name = 'SchNet_Multihead-k17-L4-Spg5-a0.25-n7'
+model_path = 'models/24-07-03/'
 
-model = torch.load(model_path + model_name + '.pkl')
+model = torch.load(model_path + model_name + '.pkl', map_location=device)
 
 dataset_names = ['CsCl.gsd', 'Th3P4.gsd', 'aggr.gsd','expr.xyz']
-sparsity = [10, 10, 10, 1]
+sparsity = [100, 100, 100, None]
 for n, name in enumerate(dataset_names):
     dataset = Universe(f'./test_traj/{name}')
 
     dataset = FilteredAtomsDataset(source = dataset,
                                 transform=pre_eval_func,
                                 target = 'target',
-                                sparsity=sparsity).dataset
+                                sparsity=sparsity[n]).dataset
 
 
     def hook_fn(module, input, output):
@@ -47,8 +47,9 @@ for n, name in enumerate(dataset_names):
     fc_save = torch.stack(fc2, dim=0)
     preds_save = torch.stack(preds)
 
-    torch.save(fc_save, model_path + model_name + f'-{name}_fc2.pkl')
-    torch.save(preds_save, model_path + model_name + f'-{name}_preds.pkl')
+    #torch.save(fc_save, model_path + model_name + f'-{name}_fc2.pkl')
+    #torch.save(preds_save, model_path + model_name + f'-{name}_preds.pkl')
+    print(preds_save)
 
     fc_save = None
     preds_save = None
