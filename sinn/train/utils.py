@@ -17,7 +17,8 @@ def gaussian_noise(tensor, noise_size):
         torch.Tensor: Noisy tensor.
     """
     min_dist = find_min_dist(tensor)
-    return tensor + torch.randn(tensor.shape) * min_dist * noise_size
+    noise = torch.randn(tensor.shape) * min_dist * noise_size
+    return tensor + noise
 
 def dist_matrix(tensor: torch.Tensor):
     x1 = torch.unsqueeze(tensor, 0)
