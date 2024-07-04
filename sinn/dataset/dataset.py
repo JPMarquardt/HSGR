@@ -95,7 +95,7 @@ class FilteredAtomsDataset():
 
             dataset = one_hot_encode(dataset, 'international_number')
 
-        if sparsity is not None:
+        if sparsity:
             dataset = dataset[dataset.index % sparsity == 1]
             dataset.reset_index(inplace=True)
 
