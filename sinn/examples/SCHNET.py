@@ -14,7 +14,7 @@ date = datetime.now().strftime("%y-%m-%d")
 for alpha in [0.5, 0.25, 0.1, 0.01]:
     n_atoms = 2
     spg = list(range(215,231))
-    spg = [220, 221, 225]
+    spg = [220, 225]
     categorical_filter = ([True],['spg_number'],[spg])
 
     batch_size = 8
