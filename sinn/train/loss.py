@@ -52,7 +52,7 @@ class RegressionClassificationLoss(nn.Module):
         output = classification_loss * penalty + regression_loss
         return torch.mean(weight * output)
 
-def find_class_weights(dataset, target: str):
+def find_class_weights(dataset, target: str, exponential: bool = False):
     """
     takes AtomsDataset with a target of one hot encoded classes 
     and returns the normalized inverse proportions of each class
@@ -61,8 +61,13 @@ def find_class_weights(dataset, target: str):
     target = dataset[target]
     num_classes = target.nunique()
     class_weights = torch.zeros(num_classes)
+
     for val in target:
         class_weights += val
+    
+    if exponential:
+        class_weights = -torch.pow(exponential, class_weights) + 1
+    
     class_weights = 1 / class_weights
     class_weights /= torch.sum(class_weights)
     return class_weights

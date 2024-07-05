@@ -13,7 +13,7 @@ date = datetime.now().strftime("%y-%m-%d")
 
 for alpha in [0.5, 0.25, 0.1, 0.01]:
     n_atoms = 2
-    spg = list(range(195,231))
+    spg = list(range(215,231))
     categorical_filter = ([True],['spg_number'],[spg])
 
     batch_size = 8
@@ -34,7 +34,7 @@ for alpha in [0.5, 0.25, 0.1, 0.01]:
                             collate = collate_multihead_noise,
                             ).dataset
 
-    class_weights = find_class_weights(dataset, target)
+    class_weights = find_class_weights(dataset, target, exponential=False)
     print(class_weights)
 
     num_classes = class_weights.size(0)
@@ -48,7 +48,7 @@ for alpha in [0.5, 0.25, 0.1, 0.01]:
         os.makedirs(model_path)
 
     loss_func = RegressionClassificationLoss(num_classes=num_classes, class_weights=class_weights, alpha=alpha, device=device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.002)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
     model_num = 7
     model_name = f'{model_type_name}-k{k}-L{num_layers}-Spg{num_classes}-a{alpha}-n{model_num}'
@@ -69,18 +69,3 @@ for alpha in [0.5, 0.25, 0.1, 0.01]:
                 save_path = model_path,
                 device = device)
 
-"""
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
-
-    train_model(model = model,
-                dataset = dataset,
-                loss_func = loss_func,
-                optimizer = optimizer,
-                n_epochs = 20,
-                batch_size = batch_size,
-                model_name=model_name,
-                save_path = model_path,
-                device = device,
-                swa=True)
-        
-"""
