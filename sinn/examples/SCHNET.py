@@ -14,7 +14,6 @@ date = datetime.now().strftime("%y-%m-%d")
 for alpha in [0.5, 0.25, 0.1, 0.01]:
     n_atoms = 2
     spg = list(range(215,231))
-    spg = [220, 225]
     categorical_filter = ([True],['spg_number'],[spg])
 
     batch_size = 8
@@ -25,7 +24,7 @@ for alpha in [0.5, 0.25, 0.1, 0.01]:
     crystal_size = lambda: torch.randint(1, 5, (1,)) * 1000
 
     pre_eval_func = NoiseRegressionTrain(noise = noise, crystal_size=crystal_size, k = k)
-    target = 'spg_number'
+    target = 'international_number'
 
     dataset = FilteredAtomsDataset(source = "dft_3d",
                             n_unique_atoms = (True,n_atoms),
