@@ -1,20 +1,25 @@
 import matplotlib.pyplot as plt
 import torch
+from sklearn.decomposition import PCA
 
-from sinn.model.schnet import SchNet_Multihead
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 names = ['CsCl', 'Th3P4', 'aggr']
 shapes = ['o', 's', 'x']
-dates = ['24-06-24', '24-06-25']
-model_names = ['SchNet-AtomNoise-Spg3-8L', 'SchNet_Multihead-k17-L8-Spg7-n2']
-spg_ind = [1, 5]
+dates = ['24-06-28', '24-06-25']
+model_names = ['Alignn_Multihead-k17-L2-Spg5-n6', 'SchNet_Multihead-k17-L8-Spg7-n2']
 for i, model_name in enumerate(model_names):
+    pca = PCA(n_components=2)
     plt.figure()
     for n, crystal_name in enumerate(names):
-        for_plotting = torch.load(f'models/{dates[i]}/{model_name}-{crystal_name}_preds.pkl', map_location=device).squeeze()
+        data = torch.load(f'models/{dates[i]}/{model_name}-{crystal_name}_fc2.pkl', map_location=device).squeeze()
+        data = data.reshape(-1, data.shape[-1])
+        if n == 0:
+            for_plotting = pca.fit_transform(data)
+        else:
+            for_plotting = pca.transform(data)
         print(for_plotting.shape)
         colors = torch.linspace(0,1,for_plotting.shape[0])
-        plt.scatter(for_plotting[:,-1], for_plotting[:,spg_ind[i]], label=crystal_name, marker=shapes[n], c=colors, alpha=0.5, cmap='viridis')
+        plt.scatter(for_plotting[:,0], for_plotting[:,1], label=crystal_name, marker=shapes[n], c=colors, alpha=0.5, cmap='viridis')
         plt.legend()
     plt.savefig(f'models/{dates[i]}/{model_name}-scatter.png')
