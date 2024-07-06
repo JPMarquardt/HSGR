@@ -4,7 +4,7 @@ from sklearn.decomposition import PCA
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-names = ['CsCl', 'Th3P4', 'aggr']
+names = ['CsCl.gsd', 'Th3P4.gsd', 'aggr.gsd']
 shapes = ['o', 's', 'x']
 dates = ['24-06-28', '24-06-25']
 model_names = ['Alignn_Multihead-k17-L2-Spg5-n6', 'SchNet_Multihead-k17-L8-Spg7-n2']
