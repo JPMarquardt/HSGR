@@ -16,7 +16,7 @@ spg = list(range(195,231))
 
 categorical_filter = ([True],['spg_number'],[spg])
 
-batch_size = 8
+batch_size = 256
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 17
@@ -25,7 +25,7 @@ pre_eval_func = PeriodicClassificationTrain(k = k)
 target = 'international_number'
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
-                        n_unique_atoms = (True,n_atoms),
+                        #n_unique_atoms = (True,n_atoms),
                         categorical_filter = categorical_filter,
                         target = target,
                         transform=pre_eval_func,
@@ -36,7 +36,7 @@ class_weights = find_class_weights(dataset, target)
 print(class_weights)
 
 num_classes = class_weights.size(0)
-num_layers = 2
+num_layers = 4
 
 model = Alignn_Multihead(num_classes = num_classes, num_layers = num_layers, hidden_features = 64, radial_features = 256)
 model_type_name = type(model).__name__
