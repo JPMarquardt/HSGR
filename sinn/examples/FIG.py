@@ -14,6 +14,7 @@ for i, model_name in enumerate(model_names):
     for n, crystal_name in enumerate(names):
         data = torch.load(f'models/{dates[i]}/{model_name}-{crystal_name}_fc2.pkl', map_location=device).squeeze()
         data = data.reshape(-1, data.shape[-1])
+        data = data.cpu().detach().numpy()
         if n == 0:
             for_plotting = pca.fit_transform(data)
         else:
