@@ -9,6 +9,8 @@ from sinn.train.train import train_model
 from sinn.train.transforms import NoiseRegressionTrain, PeriodicClassificationTrain
 from sinn.train.loss import RegressionClassificationLoss, find_class_weights
 
+date = datetime.now().strftime("%y-%m-%d")
+
 n_atoms = 2
 spg = list(range(195,231))
 
@@ -39,7 +41,6 @@ num_layers = 2
 model = Alignn_Multihead(num_classes = num_classes, num_layers = num_layers, hidden_features = 64, radial_features = 256)
 model_type_name = type(model).__name__
 
-date = datetime.now().strftime("%y-%m-%d")
 model_path = f'models/{date}/'
 if not os.path.exists(model_path):
     os.makedirs(model_path)
