@@ -49,7 +49,7 @@ for alpha in [0.5, 0.25, 0.1, 0.01]:
         os.makedirs(model_path)
 
     loss_func = RegressionClassificationLoss(num_classes=num_classes, class_weights=class_weights, alpha=alpha, device=device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
 
     model_num = 7
     model_name = f'{model_type_name}-k{k}-L{num_layers}-{target}{num_classes}-a{alpha}-n{model_num}'
