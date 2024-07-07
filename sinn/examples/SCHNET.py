@@ -54,7 +54,7 @@ for alpha in [0.5, 0.25, 0.1, 0.01]:
     model_name = f'{model_type_name}-k{k}-L{num_layers}-{target}{num_classes}-a{alpha}-n{model_num}'
     print(model_name)
 
-    scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=20)
+    scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=30)
     scheduler2 = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15, eta_min=0.0001)
     scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, [scheduler1, scheduler2], milestones=[30])
 
