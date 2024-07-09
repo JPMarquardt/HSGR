@@ -82,15 +82,15 @@ class Alignn(nn.Module):
 class Alignn_Multihead(nn.Module):
     def __init__(self, num_classes, num_layers, hidden_features, radial_features):
         super(Alignn_Multihead, self).__init__()
-        self.model = Alignn(num_classes=num_classes+1, num_layers=num_layers, hidden_features=hidden_features, radial_features=radial_features)
-        self.classifier = MLP(num_classes+1, num_classes)
-        self.regression = MLP(num_classes+1, 1)
+        self.model = Alignn(num_classes=hidden_features, num_layers=num_layers, hidden_features=hidden_features, radial_features=radial_features)
+        self.classifier = MLP(hidden_features, num_classes)
+        self.regression = MLP(hidden_features, 1)
 
         self.sm = nn.Softmax(dim=1)
     def forward(self, x):
-        x = self.model(x)
-        reg_pred = self.regression(x)
-        class_pred = self.classifier(x)
+        out = self.model(x)
+        reg_pred = self.regression(out)
+        class_pred = self.classifier(out)
         
         class_pred = self.sm(class_pred)
         

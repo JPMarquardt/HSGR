@@ -128,14 +128,12 @@ def create_periodic_graph(g, center: int = 1):
     g.apply_edges(copy_in_center_src)
     gr.apply_edges(copy_in_center_dst)
 
-    in_center_src = g.edata.pop('in_center_src')
     in_center_dst = gr.edata.pop('in_center_dst')
+    in_center_src = g.edata.pop('in_center_src')
 
     center_ids = g.filter_nodes(check_in_center)
 
-    g.ndata.pop('in_center')
-
-    out_in_filt = (~in_center_src.bool()) & in_center_dst.bool()
+    dst_in_filt = (~in_center_src.bool()) & in_center_dst.bool()
 
     copy_atom_id_src = dgl.function.copy_u('atom_id', 'atom_id_src')
     copy_atom_id_dst = dgl.function.copy_u('atom_id', 'atom_id_dst')
@@ -145,12 +143,17 @@ def create_periodic_graph(g, center: int = 1):
 
     g.ndata.pop('atom_id')
 
-    src_out_in = g.edata.pop('atom_id_src')[out_in_filt].to(torch.int64)
-    dst_out_in = gr.edata.pop('atom_id_dst')[out_in_filt].to(torch.int64)
+    r_out_in = g.edata['r'][dst_in_filt]
+    dr_out_in = g.edata['dr'][dst_in_filt]
+    src_out_in = g.edata.pop('atom_id_src')[dst_in_filt].to(torch.int64)
+    dst_out_in = gr.edata.pop('atom_id_dst')[dst_in_filt].to(torch.int64)
 
     g = g.subgraph(center_ids)
+    n_in_in = g.number_of_edges()
 
     g.add_edges(src_out_in, dst_out_in)
+    g.edata['r'][n_in_in:] = r_out_in
+    g.edata['dr'][n_in_in:] = dr_out_in
 
     return g
 

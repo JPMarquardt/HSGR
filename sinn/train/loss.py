@@ -17,15 +17,14 @@ class RegressionClassificationLoss(nn.Module):
 
 
         if class_weights is None:
-            self.class_weights = torch.ones(num_classes).to(self.device)
+            class_weights = torch.ones(num_classes).to(self.device)
         else:
-            self.class_weights = class_weights
-
+            class_weights = class_weights.squeeze().to(self.device)
         
         if num_classes == 2:
-            classification_loss = nn.BCEWithLogitsLoss()
+            classification_loss = nn.BCEWithLogitsLoss(weight=class_weights)
         else:
-            classification_loss = nn.CrossEntropyLoss()
+            classification_loss = nn.CrossEntropyLoss(weight=class_weights)
 
         regression_loss = nn.MSELoss()
         
@@ -39,9 +38,6 @@ class RegressionClassificationLoss(nn.Module):
         classification_pred = output[0]
         classification_target = target[0]
 
-        class_weights = self.class_weights.unsqueeze(0).to(self.device)
-        weight = torch.sum(class_weights * classification_target, dim=1)
-
         regression_pred = output[1].squeeze()
         regression_target = target[1]
 
@@ -50,7 +46,7 @@ class RegressionClassificationLoss(nn.Module):
 
         penalty = 1 - regression_target
         output = classification_loss * penalty + regression_loss
-        return torch.mean(weight * output)
+        return torch.mean(output)
 
 def find_class_weights(dataset, target: str, exponential: bool = False):
     """

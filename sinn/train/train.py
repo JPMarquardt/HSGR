@@ -98,7 +98,7 @@ def train_model(model,
         model_name = model_name + '_swa'
         swa_model = torch.optim.swa_utils.AveragedModel(model)
         if scheduler is None:
-            scheduler = torch.optim.swa_utils.SWALR(optimizer, swa_lr=0.05)
+            scheduler = torch.optim.swa_utils.SWALR(optimizer, swa_lr=0.0005)
     else:
         swa_model = False
 
@@ -159,7 +159,7 @@ def train_model(model,
                 torch.save(model, output_file)
             epoch_saved.append(epoch)
 
-        if loss_graph:
+        if loss_graph:  
             plt.figure()
             plt.plot(ave_training_loss, label = 'train')
             plt.plot(ave_test_loss, label = 'test')

@@ -20,4 +20,4 @@ def check_in_center(nodes):
     # the projection is the displacement vector of the edge
     # projected onto the plane defined by the normal vector
     # of the edge
-    return nodes.data["in_center"]
+    return nodes.data.pop("in_center")

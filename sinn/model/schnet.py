@@ -71,9 +71,9 @@ class SchNet(nn.Module):
 class SchNet_Multihead(nn.Module):
     def __init__(self, num_classes, num_layers, hidden_features, radial_features):
         super(SchNet_Multihead, self).__init__()
-        self.model = SchNet(num_classes=num_classes+1, num_layers=num_layers, hidden_features=hidden_features, radial_features=radial_features)
-        self.classifier = MLP(num_classes+1, num_classes)
-        self.regression = MLP(num_classes+1, 1)
+        self.model = SchNet(num_classes=hidden_features, num_layers=num_layers, hidden_features=hidden_features, radial_features=radial_features)
+        self.classifier = MLP(hidden_features, num_classes)
+        self.regression = MLP(hidden_features, 1)
 
         self.sm = nn.Softmax(dim=1)
     def forward(self, x):
