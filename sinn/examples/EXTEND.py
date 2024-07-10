@@ -32,7 +32,7 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
                         ).dataset
 
 
-model_path = f'models//'
+model_path = f'models/24-07-09/'
 model_name = f'Alignn_Multihead-k17-L8-Spg5-n6'
 
 model = torch.load(model_path + model_name + '.pkl', map_location=device)
