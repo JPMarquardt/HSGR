@@ -22,7 +22,7 @@ model_name = f'Alignn_Multihead-k17-L8-Spg5-n6'
 model = torch.load(model_path + model_name + '.pkl', map_location=device)
 
 dataset_names = ['CsCl.gsd', 'Th3P4.gsd', 'aggr.gsd','expr.xyz']
-sparsity = [100, 100, 100, None]
+sparsity = [10, 10, 10, None]
 for n, name in enumerate(dataset_names):
     dataset = Universe(f'./test_traj/{name}')
 
