@@ -25,3 +25,15 @@ for i, model_name in enumerate(model_names):
         plt.legend()
     plt.savefig(f'models/{dates[i]}/{model_name}-scatter.png')
     print(f'models/{dates[i]}/{model_name}-scatter.png')
+
+for i, model_name in enumerate(model_names):
+    plt.figure()
+    for n, crystal_name in enumerate(names):
+        data = torch.load(f'models/{dates[i]}/{model_name}-{crystal_name}_preds.pkl', map_location=device).squeeze()
+        for_plotting = data.cpu().detach().numpy()
+        print(for_plotting.shape)
+        colors = torch.linspace(0,1,for_plotting.shape[0])
+        plt.scatter(for_plotting[:,0], for_plotting[:,-2], label=crystal_name, marker=shapes[n], c=colors, alpha=0.5, cmap='viridis')
+        plt.legend()
+    plt.savefig(f'models/{dates[i]}/{model_name}-scatter-preds.png')
+    print(f'models/{dates[i]}/{model_name}-scatter-preds.png')
