@@ -6,8 +6,8 @@ from sklearn.decomposition import PCA
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 names = ['Th3P4.gsd', 'CsCl.gsd', 'aggr.gsd']
 shapes = ['o', 's', 'x']
-dates = ['24-07-09']
-model_names = ['Alignn_Multihead-k17-L8-Spg5-n6']
+dates = ['models/24-07-16/']
+model_names = ['Alignn_Multihead-k17-L8-Spg22-n6']
 for i, model_name in enumerate(model_names):
     pca = PCA(n_components=2)
     plt.figure()
