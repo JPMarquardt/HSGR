@@ -54,7 +54,7 @@ class Alignn(nn.Module):
         h = h.local_var()
 
         self.get_bf_cutoff(g, self.radial_embedding)
-        self.get_bf_cutoff(h, self.cosine_embedding)
+        h.edata['bf'] = self.cosine_embedding(h.edata['r'])
 
         n = g.number_of_nodes()
 
