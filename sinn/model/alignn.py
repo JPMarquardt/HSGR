@@ -54,6 +54,8 @@ class Alignn(nn.Module):
         h = h.local_var()
 
         self.get_bf_cutoff(g, self.radial_embedding)
+        h.ndata['cutoff'] = g.edata['cutoff']
+        h.edata['cutoff'] = g.apply_edges(lambda edges: {'cutoff': torch.min(edges.src['cutoff'], edges.dst['cutoff'])})
         h.edata['bf'] = self.cosine_embedding(h.edata['r'])
 
         n = g.number_of_nodes()
