@@ -16,13 +16,13 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 pre_eval_func = PeriodicNoiseRegressionEval(k = k)
 
-model_path = f'models/24-07-09/'
-model_name = f'Alignn_Multihead-k17-L8-Spg5-n6'
+model_path = f'models/24-07-16/'
+model_name = f'Alignn_Multihead-k17-L8-Spg22-n6'
 
 model = torch.load(model_path + model_name + '.pkl', map_location=device)
 
 dataset_names = ['CsCl.gsd', 'Th3P4.gsd', 'aggr.gsd','expr.xyz']
-sparsity = [10, 10, 10, None]
+sparsity = [100, 100, 100, None]
 for n, name in enumerate(dataset_names):
     dataset = Universe(f'./test_traj/{name}')
 

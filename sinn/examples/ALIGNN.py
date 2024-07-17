@@ -53,9 +53,9 @@ print(model_name)
 loss_func = RegressionClassificationLoss(num_classes=num_classes, class_weights=class_weights, device=device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=910)
+scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=760)
 scheduler2 = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15, eta_min=0.0001)
-scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, [scheduler1, scheduler2], milestones=[910])
+scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, [scheduler1, scheduler2], milestones=[760])
 
 train_model(model = model,
             dataset = dataset,
