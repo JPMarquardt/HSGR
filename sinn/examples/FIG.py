@@ -33,7 +33,7 @@ for i, model_name in enumerate(model_names):
         for_plotting = data.cpu().detach().numpy()
         print(for_plotting.shape)
         colors = torch.linspace(0,1,for_plotting.shape[0])
-        plt.scatter(for_plotting[:,-2], for_plotting[:,-8], label=crystal_name, marker=shapes[n], c=colors, alpha=0.5, cmap='viridis')
+        plt.scatter(for_plotting[:,-2], for_plotting[:,-9], label=crystal_name, marker=shapes[n], c=colors, alpha=0.5, cmap='viridis')
         plt.legend()
     plt.savefig(f'models/{dates[i]}/{model_name}-scatter-preds.png')
     print(f'models/{dates[i]}/{model_name}-scatter-preds.png')
