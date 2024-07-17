@@ -15,6 +15,7 @@ class Alignn(nn.Module):
         super(Alignn, self).__init__()
         self.kwargs = kwargs
 
+        self.cosine_embedding = radial_basis_func(hidden_features, (-1, 1))
         self.radial_embedding = radial_basis_func(hidden_features, (0, 1.0))
         self.cutoff = SmoothCutoff(1.0)
 
@@ -34,9 +35,9 @@ class Alignn(nn.Module):
 
         self.pooling = dgl.nn.AvgPooling()
 
-    def get_bf_cutoff(self, g) -> None:
+    def get_bf_cutoff(self, g, embedding) -> None:
         if g.edata.get('cutoff') is None:
-            bf = self.radial_embedding(g.edata['r'])
+            bf = embedding(g.edata['r'])
             cutoff = self.cutoff(g.edata['r']).unsqueeze(-1)
 
             g.edata['bf'] = bf * cutoff
@@ -52,8 +53,8 @@ class Alignn(nn.Module):
         g = g.local_var()
         h = h.local_var()
 
-        self.get_bf_cutoff(g)
-        self.get_bf_cutoff(h)
+        self.get_bf_cutoff(g, self.radial_embedding)
+        self.get_bf_cutoff(h, self.cosine_embedding)
 
         n = g.number_of_nodes()
 
