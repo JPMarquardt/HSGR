@@ -21,3 +21,13 @@ def check_in_center(nodes):
     # projected onto the plane defined by the normal vector
     # of the edge
     return nodes.data.pop("in_center")
+
+def compute_bond_cross_product(h):
+    h.ndata['dr-1'] = h.ndata['dr'].roll(1, dims=1)
+    h.ndata['dr+1'] = h.ndata['dr'].roll(-1, dims=1)
+
+    h.apply_edges(fn.u_mul_v('dr-1', 'dr', 'cross-'))
+    h.apply_edges(fn.u_mul_v('dr', 'dr+1', 'cross+'))
+
+    cross = h.edata.pop('cross+') - h.edata.pop('cross-')
+    return cross
