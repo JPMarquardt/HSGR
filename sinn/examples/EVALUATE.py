@@ -16,8 +16,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 pre_eval_func = PeriodicNoiseRegressionEval(k = k)
 
-model_path = f'models/24-07-16/'
-model_name = f'Alignn_Multihead-k17-L8-Spg22-n6'
+model_path = f'models/24-07-19/'
+model_name = f'DHL_Multihead-k7-L8-Spg22-n6'
 
 model = torch.load(model_path + model_name + '.pkl', map_location=device)
 
