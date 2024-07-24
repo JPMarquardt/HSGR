@@ -6,8 +6,8 @@ from sklearn.decomposition import PCA
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 names = ['CsCl.gsd', 'Th3P4.gsd', 'aggr.gsd']
 shapes = ['o', 's', 'x']
-dates = ['24-07-16']
-model_names = ['Alignn_Multihead-k17-L8-Spg22-n6']
+dates = ['24-07-17']
+model_names = ['Alignn_Multihead-k17-L8-Spg31-n6']
 for i, model_name in enumerate(model_names):
     pca = PCA(n_components=2)
     plt.figure()
@@ -33,7 +33,7 @@ for i, model_name in enumerate(model_names):
         for_plotting = data.cpu().detach().numpy()
         print(for_plotting.shape)
         colors = torch.linspace(0,1,for_plotting.shape[0])
-        plt.scatter(for_plotting[:,-2], for_plotting[:,-9], label=crystal_name, marker=shapes[n], c=colors, alpha=0.5, cmap='viridis')
+        plt.scatter(for_plotting[:,-3], for_plotting[:,-2], label=crystal_name, marker=shapes[n], c=colors, alpha=0.5, cmap='viridis')
         plt.legend()
     plt.savefig(f'models/{dates[i]}/{model_name}-scatter-preds.png')
     print(f'models/{dates[i]}/{model_name}-scatter-preds.png')
