@@ -13,16 +13,17 @@ from sinn.train.transforms import PeriodicNoiseRegressionEval
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-k = 17
-pre_eval_func = PeriodicNoiseRegressionEval(k = k)
+model_path = f'models/24-07-18/'
+model_name = f'DHL_Multihead-k7-L8-Spg31-n6'
 
-model_path = f'models/24-07-17/'
-model_name = f'Alignn_Multihead-k17-L8-Spg31-n6'
+k = int(model_name.split('-')[1].split('k')[1])
+print(k)
+pre_eval_func = PeriodicNoiseRegressionEval(k = k)
 
 model = torch.load(model_path + model_name + '.pkl', map_location=device)
 
 dataset_names = ['CsCl.gsd', 'Th3P4.gsd', 'aggr.gsd','expr.xyz']
-sparsity = [100, 100, 100, None]
+sparsity = [1000, 1000, 1000, None]
 for n, name in enumerate(dataset_names):
     dataset = Universe(f'./test_traj/{name}')
 

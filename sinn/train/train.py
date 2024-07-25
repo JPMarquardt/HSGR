@@ -13,6 +13,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 def test_model(model, dataset, device):
     """Runs one epoch of training or evaluation."""
 
+    transform = dataset.transform
     pred_list = []
     model.eval()
     with torch.no_grad():
@@ -22,7 +23,7 @@ def test_model(model, dataset, device):
             else:
                 g = g.to(device)
 
-            pred = model(g)
+            pred = model(g[0])
             pred_list.append(pred)
 
     return pred_list
