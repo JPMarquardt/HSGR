@@ -16,7 +16,7 @@ spg = list(range(215,221))
 
 categorical_filter = ([True],['spg_number'],[spg])
 
-batch_size = 256
+batch_size = 32
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 17
