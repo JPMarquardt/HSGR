@@ -12,7 +12,7 @@ from sinn.train.loss import RegressionClassificationLoss, find_class_weights
 date = datetime.now().strftime("%y-%m-%d")
 
 n_atoms = 2
-spg = list(range(221,231))
+spg = list(range(215,221))
 
 categorical_filter = ([True],['spg_number'],[spg])
 
