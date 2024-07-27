@@ -27,7 +27,7 @@ class ExampleAction(argparse.Action):
         default_parameters.to_yaml("example.yaml")
         parser.exit()
 
-class CV0Module(torch.nn.Module):
+class CVModule(torch.nn.Module):
     def __init__(self, mlp_name, ptypes):
         super().__init__()
         if torch.cuda.is_available():
@@ -39,27 +39,9 @@ class CV0Module(torch.nn.Module):
         self.ptypes = torch.tensor(ptypes, dtype=torch.long, device=self.device)
 
     def forward(self, positions):
-        positions = positions.float()
-        epred, x_embed, x_attn = self.mlp.forward2(self.ptypes, positions)
-        cv0 = torch.mean(x_attn[self.ptypes==17,0])
-        return cv0
+        datapoint = {'positions': positions, 'numbers': self.ptypes}
+        return self.mlp(datapoint)
 
-class CV1Module(torch.nn.Module):
-    def __init__(self, mlp_name, ptypes):
-        super().__init__()
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda")
-        else:
-            self.device = torch.device("cpu")
-            
-        self.mlp = load_model(mlp_name, derivative=True, device=self.device)
-        self.ptypes = torch.tensor(ptypes, dtype=torch.long, device=self.device)
-
-    def forward(self, positions):
-        positions = positions.float()
-        epred, x_embed, x_attn = self.mlp.forward2(self.ptypes, positions)
-        cv1 = torch.mean(x_attn[self.ptypes==17,1])
-        return cv1
 
 class CVReporter(object):
     def __init__(self, file, reportInterval, metad_obj):
@@ -193,8 +175,8 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
             types_ml.append(17)
     types_ml = np.array(types_ml, dtype=np.int32)
     
-    cv0module = torch.jit.script(CV0Module('model.ckpt', types_ml))
-    cv1module = torch.jit.script(CV1Module('model.ckpt', types_ml))
+    cv0module = torch.jit.script(CVModule('Alignn_Multihead-k17-L8-int5-n7-combiner0.pkl', types_ml))
+    cv1module = torch.jit.script(CVModule('Alignn_Multihead-k17-L8-int5-n7-combiner1.pkl', types_ml))
     cv0 = TorchForce(cv0module)
     cv1 = TorchForce(cv1module)
     # cv0.setUsesPeriodicBoundaryConditions(True)
