@@ -61,6 +61,18 @@ def aperiodic_noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
     data = a.positions
     numbers = a.numbers
 
+    n = data.size()[0]
+    #reduce the size of the dataset
+    if n > 7000:
+        target = 7000
+        reduction_factor = (target / n) ** (1/3)
+        for i in range(3):
+            dim_width = torch.max(data[:,i]) - torch.min(data[:,i])
+            filt = (data[:,i] < reduction_factor * dim_width) & (data[:,i] > 0)
+            data = data[filt]
+            numbers = numbers[filt]
+
+
     g = create_knn_graph(data, k=k)
 
     g.ndata['z'] = numbers
@@ -133,13 +145,24 @@ class APeriodicNoiseRegressionEval(nn.Module):
     def forward(self, datapoint):
         return aperiodic_noise_regression_sim_prep(datapoint, self.k)
     
-class PeriodicClassificationTrain(nn.Module):
+class APeriodicClassification(nn.Module):
+    """
+    infinite repeating simulation box for evaluation of noise regression
+    """
+    def __init__(self, k):
+        super(APeriodicClassification, self).__init__()
+        self.k = k
+
+    def forward(self, datapoint):
+        return aperiodic_noise_regression_sim_prep(datapoint, self.k)
+    
+class PeriodicClassification(nn.Module):
     """
     infinite repeating simulation box for training periodic classification (no noise)
     """
     def __init__(self, k: int = 17):
-        super(PeriodicClassificationTrain, self).__init__()
+        super(PeriodicClassification, self).__init__()
         self.k = k
 
     def forward(self, datapoint):
-        return periodic_classification_prep(datapoint, self.k), torch.zeros([1])
+        return periodic_classification_prep(datapoint, self.k)
