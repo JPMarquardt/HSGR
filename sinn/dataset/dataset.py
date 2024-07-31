@@ -18,7 +18,7 @@ class FilteredAtomsDataset():
                  n_unique_atoms: Tuple[bool, int] = None,
                  atom_types: Tuple[bool, str] = None,
                  categorical_filter: Tuple[Tuple[bool], Tuple[str], Tuple[Tuple[Any]]] = None,
-                 target: str = None,
+                 target: str = 'target',
                  transform: Callable = None,
                  collate: Callable = None,
                  sparsity: int = None,
@@ -41,6 +41,11 @@ class FilteredAtomsDataset():
         categorical_filter: allows filtering of categorical variable such as spg etc. Inputs must be given as tuples to allow for multiple category filters
 
         """
+        if transform is None:
+            transform = lambda x: x
+        if collate is None:
+            collate = lambda x: x
+
         self.transform = transform
         self.collate = collate
         
