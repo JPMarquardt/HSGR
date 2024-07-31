@@ -123,12 +123,12 @@ class NoiseRegressionTrain(nn.Module):
         noise = self.noise()
         return noise_regression_prep(datapoint, self.k, n_atoms, noise), noise
     
-class PeriodicNoiseRegressionEval(nn.Module):
+class PeriodicClassificationLarge(nn.Module):
     """
     infinite repeating simulation box for evaluation of noise regression
     """
     def __init__(self, k):
-        super(PeriodicNoiseRegressionEval, self).__init__()
+        super(PeriodicClassificationLarge, self).__init__()
         self.k = k
 
     def forward(self, datapoint):
@@ -156,12 +156,12 @@ class APeriodicClassification(nn.Module):
     def forward(self, datapoint):
         return aperiodic_noise_regression_sim_prep(datapoint, self.k)
     
-class PeriodicClassification(nn.Module):
+class PeriodicClassificationSmall(nn.Module):
     """
     infinite repeating simulation box for training periodic classification (no noise)
     """
     def __init__(self, k: int = 17):
-        super(PeriodicClassification, self).__init__()
+        super(PeriodicClassificationSmall, self).__init__()
         self.k = k
 
     def forward(self, datapoint):
