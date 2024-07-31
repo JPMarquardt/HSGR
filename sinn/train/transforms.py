@@ -6,7 +6,7 @@ from sinn.graph.graph import create_supercell, create_labeled_supercell, create_
 from sinn.train.utils import gaussian_noise
 from nfflr.data.dataset import Atoms
 
-from typing import Callable
+from typing import Callable, Union, Dict
 
 def noise_regression_prep(a: Atoms, k: int, n_target_atoms: int, noise: float):
     coords = a.positions
@@ -57,9 +57,13 @@ def noise_regression_sim_prep(a: Atoms, k: int = 9):
 
     return g
 
-def aperiodic_noise_regression_sim_prep(a, k: int = 9):
-    data = a.positions
-    numbers = a.numbers
+def aperiodic_noise_regression_sim_prep(a: Union[Atoms, Dict], k: int = 9):
+    if isinstance(a, Atoms):
+        data = a.positions
+        numbers = a.numbers
+    else:
+        data = a['positions']
+        numbers = a['numbers']
 
     n = data.size()[0]
     #reduce the size of the dataset
