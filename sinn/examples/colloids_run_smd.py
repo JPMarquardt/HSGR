@@ -184,11 +184,11 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     
     cvforce0 = openmm.CustomCVForce('cv0')
     cvforce0.addCollectiveVariable('cv0', cv0)
-    bv0 = app.metadynamics.BiasVariable(cvforce0, -180, 20, 10)
+    bv0 = app.metadynamics.BiasVariable(cvforce0, -5, 7, 0.5)
 
     cvforce1 = openmm.CustomCVForce('cv1')
     cvforce1.addCollectiveVariable('cv1', cv1)
-    bv1 = app.metadynamics.BiasVariable(cvforce1, -3, 8, 0.5)
+    bv1 = app.metadynamics.BiasVariable(cvforce1, -5, 7, 0.5)
 
     meta = app.metadynamics.Metadynamics(system, [bv0, bv1], parameters.temperature,
                                          100, 1.2*unit.kilojoules_per_mole, 100,
