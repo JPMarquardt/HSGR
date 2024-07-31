@@ -57,7 +57,30 @@ def noise_regression_sim_prep(a: Atoms, k: int = 9):
 
     return g
 
-def aperiodic_noise_regression_sim_prep(a: Dict, k: int = 9):
+def aperiodic_classification_atoms(a: Dict, k: int = 9):
+
+    data = a['positions']
+    numbers = a['numbers']
+
+    n = data.size()[0]
+    #reduce the size of the dataset
+    if n > 7000:
+        target = 7000
+        reduction_factor = (target / n) ** (1/3)
+        for i in range(3):
+            dim_width = torch.max(data[:,i]) - torch.min(data[:,i])
+            filt = (data[:,i] < reduction_factor * dim_width) & (data[:,i] > 0)
+            data = data[filt]
+            numbers = numbers[filt]
+
+
+    g = create_knn_graph(data, k=k)
+
+    g.ndata['z'] = numbers
+
+    return g
+
+def aperiodic_classification_sim(a: Dict[torch.Tensor, torch.Tensor], k: int = 9):
 
     data = a['positions']
     numbers = a['numbers']
@@ -135,16 +158,16 @@ class PeriodicClassificationLarge(nn.Module):
     def forward(self, datapoint):
         return noise_regression_sim_prep(datapoint, self.k)
     
-class APeriodicNoiseRegressionEval(nn.Module):
+class APeriodicClassificationAtoms(nn.Module):
     """
     infinite repeating simulation box for evaluation of noise regression
     """
     def __init__(self, k):
-        super(APeriodicNoiseRegressionEval, self).__init__()
+        super(APeriodicClassificationAtoms, self).__init__()
         self.k = k
 
     def forward(self, datapoint):
-        return aperiodic_noise_regression_sim_prep(datapoint, self.k)
+        return aperiodic_classification_atoms(datapoint, self.k)
     
 class APeriodicClassification(nn.Module):
     """
@@ -155,7 +178,7 @@ class APeriodicClassification(nn.Module):
         self.k = k
 
     def forward(self, datapoint):
-        return aperiodic_noise_regression_sim_prep(datapoint, self.k)
+        return aperiodic_classification_sim(datapoint, self.k)
     
 class PeriodicClassificationSmall(nn.Module):
     """
