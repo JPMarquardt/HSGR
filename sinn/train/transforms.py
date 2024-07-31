@@ -57,7 +57,7 @@ def noise_regression_sim_prep(a: Atoms, k: int = 9):
 
     return g
 
-def aperiodic_noise_regression_sim_prep(a: Atoms, k: int = 9):
+def aperiodic_noise_regression_sim_prep(a, k: int = 9):
     data = a.positions
     numbers = a.numbers
 
