@@ -80,7 +80,7 @@ def aperiodic_classification_atoms(a: Dict, k: int = 9):
 
     return g
 
-def aperiodic_classification_sim(a: Dict[torch.Tensor, torch.Tensor], k: int = 9):
+def aperiodic_classification_sim(a: Dict[str, torch.Tensor], k: int = 9):
 
     data = a['positions']
     numbers = a['numbers']
