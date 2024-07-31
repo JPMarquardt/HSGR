@@ -58,12 +58,9 @@ def noise_regression_sim_prep(a: Atoms, k: int = 9):
     return g
 
 def aperiodic_noise_regression_sim_prep(a: Union[Atoms, Dict], k: int = 9):
-    if isinstance(a, Atoms):
-        data = a.positions
-        numbers = a.numbers
-    else:
-        data = a['positions']
-        numbers = a['numbers']
+
+    data = a['positions']
+    numbers = a['numbers']
 
     n = data.size()[0]
     #reduce the size of the dataset
