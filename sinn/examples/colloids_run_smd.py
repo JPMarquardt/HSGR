@@ -34,8 +34,8 @@ class CVModule(torch.nn.Module):
             self.device = torch.device("cuda")
         else:
             self.device = torch.device("cpu")
-            
-        self.mlp = load_model(mlp_name, derivative=True, device=self.device)
+
+        self.mlp = torch.load(mlp_name, device=self.device)
         self.ptypes = torch.tensor(ptypes, dtype=torch.long, device=self.device)
 
     def forward(self, positions):
