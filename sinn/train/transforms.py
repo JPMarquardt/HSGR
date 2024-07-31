@@ -1,14 +1,14 @@
-import nfflr
 import torch
 import torch.nn as nn
 from math import ceil
 
 from sinn.graph.graph import create_supercell, create_labeled_supercell, create_knn_graph, lattice_plane_slicer, create_periodic_graph, big_box_filter, small_box_filter
 from sinn.train.utils import gaussian_noise
+from nfflr.data.dataset import Atoms
 
 from typing import Callable
 
-def noise_regression_prep(a: nfflr.Atoms, k: int, n_target_atoms: int, noise: float):
+def noise_regression_prep(a: Atoms, k: int, n_target_atoms: int, noise: float):
     coords = a.positions
     lattice = a.cell
     numbers = a.numbers
@@ -31,7 +31,7 @@ def noise_regression_prep(a: nfflr.Atoms, k: int, n_target_atoms: int, noise: fl
 
     return g
 
-def noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
+def noise_regression_sim_prep(a: Atoms, k: int = 9):
     data = a.positions
     lattice = a.cell
     numbers = a.numbers
@@ -57,7 +57,7 @@ def noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
 
     return g
 
-def aperiodic_noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
+def aperiodic_noise_regression_sim_prep(a: Atoms, k: int = 9):
     data = a.positions
     numbers = a.numbers
 
@@ -79,7 +79,7 @@ def aperiodic_noise_regression_sim_prep(a: nfflr.Atoms, k: int = 9):
 
     return g
 
-def periodic_classification_prep(a: nfflr.Atoms, k: int = 9):
+def periodic_classification_prep(a: Atoms, k: int = 9):
     data = a.positions
     lattice = a.cell
     numbers = a.numbers
