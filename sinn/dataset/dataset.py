@@ -111,7 +111,7 @@ class FilteredAtomsDataset():
                                     custom_collate_fn = self.collate,
                                     **kwargs)
         return
-    
+
 def arbitrary_feat(dataset):
     for datapoint in dataset:
         graph_node_feat = datapoint[0][0].ndata['atomic_number']

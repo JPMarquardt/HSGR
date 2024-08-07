@@ -2,14 +2,19 @@ import torch
 import dgl
 import numpy as np
 import nfflr
+from math import ceil
 
+from nfflr.data.dataset import Atoms
 from typing import Tuple
 from sinn.graph.utils import compute_bond_cosines, check_in_center
 
-def create_supercell(data: torch.tensor, n: int):
+def create_supercell(data: torch.tensor, n: int, lattice: torch.tensor = None):
     """
     Create a supercell
     """
+    if lattice is None:
+        lattice = torch.eye(3)
+        
     n_atoms = data.shape[0]
     supercell = torch.zeros((data.shape[0] * n**3, data.shape[1]))
     for i in range(n):
@@ -17,7 +22,7 @@ def create_supercell(data: torch.tensor, n: int):
             for k in range(n):
                 ind = (i*n**2 + j*n + k) * n_atoms
                 displacement = torch.tensor([i, j, k], dtype=torch.float)
-                supercell[ind:ind + n_atoms] = data + displacement[None, :]
+                supercell[ind:ind + n_atoms] = data + displacement[None, :] @ lattice
 
     return supercell
 
@@ -86,7 +91,7 @@ def create_linegraph(g: dgl.DGLGraph):
     compute_bond_cosines(h)
     return h
 
-def create_knn_graph(data: torch.Tensor, k: int):
+def create_aperiodic_knn_graph(data: torch.Tensor, k: int):
     """
     Create a k-nearest neighbor graph with necessary edge features
     """
@@ -110,7 +115,7 @@ def create_knn_graph(data: torch.Tensor, k: int):
     
     return g
 
-def create_periodic_graph(g, center: int = 1):
+def periodic_graph_from_labeled_supercell(g, center: int = 1):
     """
     Create a periodic graph from a graph
     """
@@ -157,35 +162,45 @@ def create_periodic_graph(g, center: int = 1):
 
     return g
 
-def big_box_filter(data, lattice, dx):
-    d = data.size()[1]
+def box_filter(data, center, lattice):
+    """
+    Filter the data based on the box
+    """
+    inverse_lattice = torch.inverse(lattice)
+    lattice_position = data @ inverse_lattice
+
     full_filter = torch.ones(data.size()[0], dtype=torch.bool)
 
-    for i in range(d):
-        lattice_vector = lattice[i]
-        lattice_vector_norm = torch.norm(lattice_vector)
-        dp = torch.sum(data * lattice_vector/lattice_vector_norm, dim=1)
-        high_filt = dp < 2 * lattice_vector_norm + dx
-        low_filt = dp > lattice_vector_norm - dx
+    for i in range(data.size()[1]):
+        high_filt = lattice_position[i] < (1 + center)
+        low_filt = lattice_position[i] >= center
         filt = torch.logical_and(high_filt, low_filt)
         full_filter = torch.logical_and(full_filter, filt)
 
     return full_filter
 
-def small_box_filter(data, lattice, center):
-    d = data.size()[1]
-    full_filter = torch.ones(data.size()[0], dtype=torch.bool)
+def create_periodic_knn_graph(a: Atoms, k: int = 9):
+    data = a.positions
+    lattice = a.cell
+    numbers = a.numbers
 
-    for i in range(d):
-        lattice_vector = lattice[i]
-        lattice_vector_norm = torch.norm(lattice_vector)
-        dp = torch.sum(data * lattice_vector/lattice_vector_norm, dim=1)
-        high_filt = dp < center * lattice_vector_norm + 1
-        low_filt = dp > center * lattice_vector_norm
-        filt = torch.logical_and(high_filt, low_filt)
-        full_filter = torch.logical_and(full_filter, filt)
+    n_atoms = data.size()[0]
+    dx = (k / n_atoms) ** (1/3) / 2
+    replicates = ceil(dx) * 2 + 1
+    center = (replicates - 1) / 2
 
-    return full_filter
+    supercell, atom_id, cell_id = create_labeled_supercell(data, n=replicates, lattice=lattice)
+    numbers = numbers.repeat(replicates**3)
+
+    g = create_aperiodic_knn_graph(supercell, k=k)
+
+    g.ndata['z'] = numbers
+    g.ndata['atom_id'] = atom_id
+    g.ndata['cell_id'] = cell_id
+
+    g = periodic_graph_from_labeled_supercell(g, center=center)
+
+    return g
 
 if __name__ == "__main__":
     #verify the functions

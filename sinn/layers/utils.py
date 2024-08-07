@@ -33,7 +33,7 @@ class SmoothCutoff(nn.Module):
         else:
             self.early_return = False
 
-    def forward(self, r):
+    def forward(self, r: torch.Tensor):
         if self.early_return:
             return torch.ones_like(r)
 
@@ -57,14 +57,19 @@ class SmoothCutoff(nn.Module):
     
 
 class radial_basis_func(nn.Module):
-    def __init__(self, in_feats: int = 64, in_range: Tuple[float, float] = None, **kwargs):
+    def __init__(self, in_feats: int = 64, out_feats: int = 64, in_range: Tuple[float, float] = None, **kwargs):
         super(radial_basis_func, self).__init__()
 
         #basis function parameters
         self.register_buffer('gamma', torch.tensor(in_feats / (in_range[1] - in_range[0])))
-        self.register_buffer('muk', torch.linspace(in_range[0], in_range[1], in_feats).unsqueeze(0))
+        self.register_buffer('muk', torch.linspace(in_range[0], in_range[1], in_feats))
 
-    def forward(self, dist):
-        return torch.exp(-self.gamma * (dist.unsqueeze(1) - self.muk)**2)
+        #MLP for radial basis function
+        self.MLP = MLP(in_feats, out_feats)
+
+    def forward(self, r: torch.Tensor):
+        muk = self.muk.unsqueeze(torch.tensor((None, ) * r.dim()))
+        exp = torch.exp(-self.gamma * (r.unsqueeze(-1) - muk)**2)
+        return MLP(exp)
     
 

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from math import ceil
 
-from sinn.graph.graph import create_supercell, create_labeled_supercell, create_knn_graph, lattice_plane_slicer, create_periodic_graph, big_box_filter, small_box_filter
+from sinn.graph.graph import create_supercell, create_labeled_supercell, create_knn_graph, lattice_plane_slicer, create_periodic_graph, create_periodic_graph
 from sinn.train.utils import gaussian_noise
 from nfflr.data.dataset import Atoms
 
@@ -28,32 +28,6 @@ def noise_regression_prep(a: Atoms, k: int, n_target_atoms: int, noise: float):
     g = create_knn_graph(supercell, k=k)
     numbers = numbers.repeat(replicates**3)
     g.ndata['z'] = numbers
-
-    return g
-
-def noise_regression_sim_prep(a: Atoms, k: int = 9):
-    data = a.positions
-    lattice = a.cell
-    numbers = a.numbers
-    replicates = 3
-
-    dx = 0.1 * torch.min(torch.norm(lattice, dim=1))
-    supercell, atom_id, cell_id = create_labeled_supercell(data, n=replicates, lattice=lattice)
-    numbers = numbers.repeat(replicates**3)
-    filt = big_box_filter(supercell, lattice, dx)
-
-    supercell = supercell[filt]
-    atom_id = atom_id[filt]
-    cell_id = cell_id[filt]
-    numbers = numbers[filt]
-
-    g = create_knn_graph(supercell, k=k)
-
-    g.ndata['z'] = numbers
-    g.ndata['atom_id'] = atom_id
-    g.ndata['cell_id'] = cell_id
-
-    g = create_periodic_graph(g)
 
     return g
 
@@ -103,17 +77,21 @@ def aperiodic_classification_sim(a: Dict[str, torch.Tensor], k: int = 9):
 
     return g
 
-def periodic_classification_prep(a: Atoms, k: int = 9):
+def noise_regression_sim_prep(a: Atoms, k: int = 9):
     data = a.positions
     lattice = a.cell
     numbers = a.numbers
+    replicates = 3
 
-    n_atoms = data.size()[0]
-    replicates = ceil((k / n_atoms) ** (1/3) / 2) * 2 + 1
-    center = (replicates - 1) / 2
-
+    dx = 0.1 * torch.min(torch.norm(lattice, dim=1))
     supercell, atom_id, cell_id = create_labeled_supercell(data, n=replicates, lattice=lattice)
     numbers = numbers.repeat(replicates**3)
+    filt = big_box_filter(supercell, lattice, dx)
+
+    supercell = supercell[filt]
+    atom_id = atom_id[filt]
+    cell_id = cell_id[filt]
+    numbers = numbers[filt]
 
     g = create_knn_graph(supercell, k=k)
 
@@ -121,9 +99,11 @@ def periodic_classification_prep(a: Atoms, k: int = 9):
     g.ndata['atom_id'] = atom_id
     g.ndata['cell_id'] = cell_id
 
-    g = create_periodic_graph(g, center=center)
+    g = create_periodic_graph(g)
 
     return g
+
+
 
 class NoiseRegressionTrain(nn.Module):
     """
@@ -190,3 +170,11 @@ class PeriodicClassificationSmall(nn.Module):
 
     def forward(self, datapoint):
         return periodic_classification_prep(datapoint, self.k)
+    
+
+if __name__ == '__main__':
+    from sinn.dataset.dataset import FilteredAtomsDataset
+    data = FilteredAtomsDataset('dft_3d',
+                                target='spg_number').dataset
+    for i in range(10):
+        print(periodic_classification(data[i][0], 9))
