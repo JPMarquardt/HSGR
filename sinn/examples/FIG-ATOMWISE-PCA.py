@@ -5,9 +5,9 @@ import pickle
 from nfflr.data.dataset import Atoms
 from sklearn.decomposition import IncrementalPCA
 from sinn.train.train import test_model
-from sinn.train.transforms import PeriodicClassificationLarge
-from sinn.dataset.dataset import FilteredAtomsDataset, collate_multihead_noise
-from sinn.model.alignn import Alignn_Multihead
+from sinn.train.transforms_pyg import PeriodicKNN_PyG
+from sinn.dataset.dataset import FilteredAtomsDataset
+from sinn.model.alignn_pyg import Alignn
 from sinn.model.combiner import Model_Combiner
 from MDAnalysis import Universe
 
@@ -16,8 +16,8 @@ def hook_fn(module, input, output):
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 names = ['CsCl.gsd', 'Th3P4.gsd', 'aggr.gsd']
-dates = ['24-07-25']
-model_names = ['Alignn_Multihead-k17-L8-int5-n7']
+dates = ['24-08-06']
+model_names = ['Alignn-k17-L4-int5-n7']
 sparsity = 1000
 
 for i, model_name in enumerate(model_names):
@@ -29,8 +29,8 @@ for i, model_name in enumerate(model_names):
                                         ).dataset
         
 
-        transform = PeriodicClassificationLarge(k=17)
-        model: Alignn_Multihead = torch.load(f'models/{dates[i]}/{model_name}.pkl', map_location=device)
+        transform = PeriodicKNN_PyG(k=17)
+        model: Alignn = torch.load(f'models/{dates[i]}/{model_name}.pkl', map_location=device)
         with open(f'models/{dates[i]}/{model_name}-pca.pkl', 'rb') as f:
             pca: IncrementalPCA = pickle.load(f)
             pca = torch.tensor(pca.components_)
