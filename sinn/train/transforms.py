@@ -31,7 +31,7 @@ def noise_regression_prep(a: Atoms, k: int, n_target_atoms: int, noise: float):
 
     return g
 
-def aperiodic_classification_atoms(a: Dict, k: int = 9):
+def aperiodic_classification_atoms(a: dict, k: int = 9):
 
     data = a['positions']
     numbers = a['numbers']
