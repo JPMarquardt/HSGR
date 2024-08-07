@@ -11,17 +11,13 @@ class Model_Combiner(nn.Module):
         super(Model_Combiner, self).__init__()
         self.pre_eval_func = pre_eval_func
         self.model = model
-
-        model.fc.register_forward_hook(self.hook_fn)
         self.output = torch.Tensor()
 
         self.register_buffer('pca_weights', torch.transpose(pca, 0, 1))
 
-    def hook_fn(self, module, input, output: torch.Tensor) -> None:
-        self.output = output
 
     def forward(self, x) -> torch.Tensor:       
         x = self.pre_eval_func(x)
-        self.model(x)
+        self.output = self.model(x, early_return=True)
 
         return torch.sum(self.pca_weights[None, :, :] * self.output[:, :, None], dim=1)

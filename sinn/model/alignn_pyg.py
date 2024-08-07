@@ -40,7 +40,7 @@ class Alignn(nn.Module):
         self.fc = MLP(hidden_feats, hidden_feats)
         self.fc2 = MLP(hidden_feats, out_feats)
 
-    def forward(self, g: Union[Graph, Tuple[Graph]]):
+    def forward(self, g: Union[Graph, Tuple[Graph]], early_return: bool = False):
 
         if isinstance(g, tuple):
             g, h = g
@@ -71,6 +71,10 @@ class Alignn(nn.Module):
         #final fully connected layers
         x = g['h']
         x = self.fc(x)
+
+        if early_return:
+            return x
+        
         x = torch.sum(x, dim=0)
         x = self.fc2(x)
 
