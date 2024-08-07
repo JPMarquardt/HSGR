@@ -40,7 +40,7 @@ class Alignn(nn.Module):
         self.fc = MLP(hidden_feats, hidden_feats)
         self.fc2 = MLP(hidden_feats, out_feats)
 
-    def forward(self, g: Union[Graph, Tuple[Graph]], early_return: bool = False):
+    def forward(self, g: Union[Graph, Tuple[Graph, Graph]], early_return: bool = False):
 
         if isinstance(g, tuple):
             g, h = g
