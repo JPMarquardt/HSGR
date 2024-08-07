@@ -200,6 +200,8 @@ def create_aperiodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     """
     Create a periodic k-nearest neighbor graph
     """
+    device = a['positions'].device
+
     # get the stuff
     data = a['positions']
     atomic_numbers = a['numbers']
@@ -219,7 +221,7 @@ def create_aperiodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     g['dst_z'] = atomic_numbers
 
     # this is how to add edge source properties to the graph
-    edge_feat = torch.zeros((g.n_nodes, g.n_nodes), dtype=torch.int)
+    edge_feat = torch.zeros((g.n_nodes, g.n_nodes), dtype=torch.int, device=device)
     
     # expand the edge features to the full graph
     edge_feat.scatter_(1, g['knn'], True)
