@@ -186,14 +186,13 @@ def create_periodic_knn_graph(a: Atoms, k: int = 9):
 
     return g
 
-def create_aperiodic_knn_graph(a: Atoms, k: int = 9):
+def create_aperiodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     """
     Create a periodic k-nearest neighbor graph
     """
     # get the stuff
-    data = a.positions
-    lattice = a.cell
-    atomic_numbers = a.numbers
+    data = a['positions']
+    atomic_numbers = a['numbers']
 
     # create the aperiodic knn graph
     g = aperiodic_knn_graph_from_supercell(data, k=k)
