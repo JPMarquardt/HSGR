@@ -7,8 +7,8 @@ from nfflr.data.dataset import Atoms
 class Graph():
     def __init__(self, dictionary: dict[str, torch.Tensor], nodes: int, edges: int):
         self.dictionary = dictionary
-        self.nodes = nodes
-        self.edges = edges
+        self.n_nodes = nodes
+        self.k = edges
 
     def to(self, device: str):
         for key, value in self.dictionary.items():
@@ -16,11 +16,7 @@ class Graph():
                 self.dictionary[key] = value.to(device)
         return self
 
-    def __getitem__(self, key: str):
-        if key == 'n_nodes':
-            return self.nodes
-        elif key == 'k':
-            return self.edges
+    def __getitem__(self, key: str) -> torch.Tensor:
         return self.dictionary[key]
     
     def __setitem__(self, key: str, value: torch.Tensor):
@@ -115,9 +111,9 @@ def periodic_graph_from_labeled_supercell(g: Graph, center: int = 1):
     in_center_ids = torch.nonzero(in_center).squeeze()
 
     # some useful constants of the graph
-    total_nodes = g['n_nodes']
-    g['n_nodes'] = torch.sum(in_center)
-    reduced_nodes = g['n_nodes']
+    total_nodes = g.n_nodes
+    g.n_nodes = torch.sum(in_center)
+    reduced_nodes = g.n_nodes
     
     # filter the graph to only include the in-center atoms
     g['dst_z'] = g['z'][in_center_ids]
@@ -246,10 +242,5 @@ def create_linegraph(g: Graph):
     h['src_z'] = torch.stack((g_z_1, g_z_2), dim=-1)
 
     # if we want to go to higher dim we need to create dx for h
-
-    # set the constants
-    h['k'] = g['k']
-    h['n_nodes'] = g['n_nodes']
-    h['depth'] = 1
     
-    return Graph(h)
+    return Graph(h, g.n_nodes, g.k)
