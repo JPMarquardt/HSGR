@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from MDAnalysis import Universe
 from sklearn.decomposition import IncrementalPCA
-from sinn.train.transforms import APeriodicNoiseRegressionEval, PeriodicClassification, PeriodicNoiseRegressionEval
+from sinn.train.transforms_pyg import PeriodicKNN_PyG
 from sinn.dataset.dataset import FilteredAtomsDataset, collate_multihead_noise
 from sinn.train.train import test_model
 
@@ -18,7 +18,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 17
 
-pre_eval_func = PeriodicClassification(k = k)
+pre_eval_func = PeriodicKNN_PyG(k = k)
 target = 'international_number'
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
@@ -31,14 +31,14 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
 
 fc2 = []
 
-model_name = f'Alignn_Multihead-k17-L8-int5-n7'
-model_path = f'models/24-07-25/'
+model_name = f'Alignn-k17-L4-int5-n7'
+model_path = f'models/24-08-06/'
 
 model = torch.load(model_path + model_name + '.pkl', map_location=device)
 
 def hook_fn(module, input, output):
     fc2.append(output)
-model.model.fc.register_forward_hook(hook_fn)
+model.fc.register_forward_hook(hook_fn)
 
 pca = IncrementalPCA(n_components=2)
 

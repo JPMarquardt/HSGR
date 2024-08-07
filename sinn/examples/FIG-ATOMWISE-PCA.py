@@ -47,6 +47,7 @@ for i, model_name in enumerate(model_names):
                 positions = atoms.positions
 
                 pca_j = pca_eval[j]
+                print(torch.max(pca_j[:, k]), torch.min(pca_j[:, k]))
                 
                 fig = plt.figure()
                 ax = fig.add_subplot(111, projection='3d')

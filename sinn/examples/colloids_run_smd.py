@@ -35,7 +35,7 @@ class CVModule(torch.nn.Module):
         else:
             self.device = torch.device("cpu")
 
-        self.mlp = torch.load(mlp_name, device=self.device)
+        self.mlp = torch.load(mlp_name, map_location=self.device)
         self.ptypes = torch.tensor(ptypes, dtype=torch.long, device=self.device)
 
     def forward(self, positions):
