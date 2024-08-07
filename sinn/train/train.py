@@ -27,7 +27,7 @@ def test_model(model, dataset, device):
 
     return pred_list
 
-def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = None, train=True, swa=False):
+def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = None, train=True, debug=False, swa=False):
     """Runs one epoch of training or evaluation."""
 
     ave_loss = 0
@@ -47,11 +47,15 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = No
         def bw_closure():
             pass
 
-    graph_to = gen_to_func(next(iter(loader))[0], device)
-    y_to = gen_to_func(next(iter(loader))[1], device)
+    if debug:
+        grad = (torch.autograd.set_detect_anomaly(True), grad)
+
+    graph_to = gen_to_func(next(iter(loader))[0][0], device)
+    y_to = gen_to_func(next(iter(loader))[0][1], device)
 
     with grad:
-        for step, (g, y) in enumerate(tqdm(loader)):
+        for step, g in enumerate(tqdm(loader)):
+            g, y = g[0]
             g = graph_to(g)
             y = y_to(y)
 
