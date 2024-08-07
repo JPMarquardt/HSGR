@@ -216,7 +216,7 @@ def create_aperiodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     # n_nodes: int
 
     # add the features needed for the periodic graph and z
-    g['z'] = atomic_numbers
+    g['dst_z'] = atomic_numbers
 
     return g
 
