@@ -78,7 +78,6 @@ class Alignn(nn.Module):
         x = torch.sum(x, dim=0)
         x = self.fc2(x)
 
-        if self.kwargs.get('classification'):
-            return F.softmax(x, dim=-1)
+        return F.softmax(x, dim=-1)
         
         return x.squeeze()
