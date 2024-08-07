@@ -17,10 +17,10 @@ class Model_Combiner(nn.Module):
 
         self.register_buffer('pca_weights', torch.transpose(pca, 0, 1))
 
-    def hook_fn(self, module, input, output):
-        self.output: torch.Tensor = output
+    def hook_fn(self, module, input, output: torch.Tensor) -> None:
+        self.output = output
 
-    def forward(self, x):       
+    def forward(self, x) -> torch.Tensor:       
         x = self.pre_eval_func(x)
         self.model(x)
 
