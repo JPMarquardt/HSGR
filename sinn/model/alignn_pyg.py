@@ -59,7 +59,7 @@ class Alignn(nn.Module):
         g['h'] = self.node_embedding.unsqueeze(0).expand(n, -1)
         g['h_edge'] = self.edge_embedding(g)
         h['h'] = g['h_edge']
-        h['h_edge'] = self.triplet_embedding((g, h))
+        h['h_edge'] = self.triplet_embedding(h)
 
         #update node and edge features
         for layer in self.layers:
