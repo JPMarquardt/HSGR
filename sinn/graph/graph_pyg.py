@@ -218,6 +218,16 @@ def create_aperiodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     # add the features needed for the periodic graph and z
     g['dst_z'] = atomic_numbers
 
+    # this is how to add edge source properties to the graph
+    edge_feat = torch.zeros((g.n_nodes, g.n_nodes), dtype=torch.int)
+    
+    # expand the edge features to the full graph
+    edge_feat.scatter_(1, g['knn'], True)
+
+    # update edge features to be relative to the in-center atoms
+    g['src_z'] = edge_feat * g.pop('z')[None, :]
+    g['src_z'] = g['src_z'].gather(1, g['knn'])
+
     return g
 
 def create_linegraph(g: Graph):
