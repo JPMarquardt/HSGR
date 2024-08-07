@@ -13,7 +13,7 @@ class color_invariant_duplet(nn.Module):
         self.e1 = nn.Embedding(2, in_feats)
     
     def forward(self, g: Graph):
-        zab = torch.eq(g['src_z'], g['dst_z'][:, None].expand(-1, g['k']))
+        zab = torch.eq(g['src_z'], g['dst_z'][:, None].expand(-1, g.k))
 
         return self.e1(zab.int())
     
@@ -26,11 +26,10 @@ class color_invariant_triplet(nn.Module):
         self.e3 = nn.Embedding(2, in_feats)
     
     def forward(self, g: Graph):
-        g, h = g
 
-        za = g['dst_z'][:, None, None].expand(-1, g['k'], g['k'])
-        zb = torch.select(h['src_z'], -1, 0)
-        zc = torch.select(h['src_z'], -1, 1)
+        za = g['dst_z'][:, None, None].expand(-1, g.k, g.k)
+        zb = torch.select(g['src_z'], -1, 0)
+        zc = torch.select(g['src_z'], -1, 1)
 
         zab = torch.eq(za, zb)
         zac = torch.eq(za, zc)
