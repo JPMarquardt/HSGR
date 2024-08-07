@@ -50,10 +50,10 @@ class Alignn(nn.Module):
         g['cutoff'] = self.cutoff(g['r'])
         g['bf'] = self.radial_embedding(g['r'])
 
-        h['cutoff'] = g['cutoff'].unsqueeze(-1).expand(-1, -1, h['k'])
+        h['cutoff'] = g['cutoff'].unsqueeze(-1).expand(-1, -1, h.k)
         h['bf'] = self.cosine_embedding(h['r'])
 
-        n = g['n_nodes']
+        n = g.n_nodes
 
         #x, y, z
         g['h'] = self.node_embedding.unsqueeze(0).expand(n, -1)
