@@ -16,7 +16,7 @@ class Model_Combiner(nn.Module):
         self.register_buffer('pca_weights', torch.transpose(pca, 0, 1))
 
 
-    def forward(self, x) -> torch.Tensor:       
+    def forward(self, x: dict[str, torch.Tensor]) -> torch.Tensor:       
         x = self.pre_eval_func(x)
         self.output = self.model(x, early_return=True)
 
