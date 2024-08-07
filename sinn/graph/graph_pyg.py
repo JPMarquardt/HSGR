@@ -22,6 +22,15 @@ class Graph():
     def __setitem__(self, key: str, value: torch.Tensor):
         self.dictionary[key] = value
 
+    def pop(self, key: str) -> torch.Tensor:
+        return self.dictionary.pop(key)
+    
+    def keys(self):
+        return self.dictionary.keys()
+    
+    def values(self):
+        return self.dictionary.values()
+
     def debug(self):        
         for key, value in self.dictionary.items():
             print(key, torch.any(torch.isnan(value)))
@@ -235,9 +244,11 @@ def create_linegraph(g: Graph):
     h['knn'] = torch.stack((g_knn_1, g_knn_2), dim=-1)
     """
 
+    h['dst_z'] = g['dst_z']
+
     # put in the z features
-    g_z_1 = g['src_z'][:, :, None].expand(-1, -1, g['k'])
-    g_z_2 = g['src_z'][:, None, :].expand(-1, g['k'], -1)
+    g_z_1 = g['src_z'][:, :, None].expand(-1, -1, g.k)
+    g_z_2 = g['src_z'][:, None, :].expand(-1, g.k, -1)
 
     h['src_z'] = torch.stack((g_z_1, g_z_2), dim=-1)
 
