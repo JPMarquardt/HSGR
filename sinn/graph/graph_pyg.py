@@ -5,8 +5,10 @@ from typing import Union
 from nfflr.data.dataset import Atoms
 
 class Graph():
-    def __init__(self, dictionary: dict[str, Union[torch.Tensor, torch.Tensor.indices, int]]):
+    def __init__(self, dictionary: dict[str, torch.Tensor], nodes: int, edges: int):
         self.dictionary = dictionary
+        self.nodes = nodes
+        self.edges = edges
 
     def to(self, device: str):
         for key, value in self.dictionary.items():
@@ -15,15 +17,18 @@ class Graph():
         return self
 
     def __getitem__(self, key):
+        if key == 'n_nodes':
+            return self.nodes
+        elif key == 'k':
+            return self.edges
         return self.dictionary[key]
     
     def __setitem__(self, key, value):
         self.dictionary[key] = value
 
-    def debug(self):
+    def debug(self):        
         for key, value in self.dictionary.items():
-            if isinstance(value, torch.Tensor):
-                print(key, torch.any(torch.isnan(value)))
+            print(key, torch.any(torch.isnan(value)))
 
 def box_filter(data: torch.Tensor, dx: float, lattice: torch.Tensor):
     """
@@ -97,9 +102,9 @@ def aperiodic_knn_graph_from_supercell(data: torch.Tensor, k: int):
     knn_dx = torch.gather(dx, 1, knn.indices.unsqueeze(2).expand(-1, -1, dx.size(2)))
 
     # KNN graph: dx, r, knn, n_nodes
-    g = {'dx': knn_dx, 'r': knn_normalized, 'knn': knn.indices, 'n_nodes': n_nodes, 'k': k}
+    g = {'dx': knn_dx, 'r': knn_normalized, 'knn': knn.indices}
     
-    return Graph(g)
+    return Graph(g, n_nodes, k)
 
 def periodic_graph_from_labeled_supercell(g: Graph, center: int = 1):
     """
