@@ -17,7 +17,7 @@ class Alignn(nn.Module):
                  radial_feats: int = 256,
                  hidden_feats: int = 64,
                  out_feats: int = 64, 
-                 **kwargs):
+                 **kwargs: dict[str, bool]):
         super(Alignn, self).__init__()
         self.kwargs = kwargs
 
