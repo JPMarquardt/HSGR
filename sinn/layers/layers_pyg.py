@@ -70,7 +70,7 @@ class AlignnConv(nn.Module):
         self.r_conv = SchnetConv(in_feats, radial_feats=radial_feats, hidden_feats=hidden_feats, out_feats=out_feats)
         self.angle_conv = SchnetConv(in_feats, radial_feats=radial_feats, hidden_feats=hidden_feats, out_feats=out_feats)
 
-    def forward(self, g: Tuple[Graph]):
+    def forward(self, g: Tuple[Graph, Graph]):
         g, h = g
 
         v = self.r_conv(g)
