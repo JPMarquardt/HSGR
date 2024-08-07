@@ -78,7 +78,7 @@ def create_labeled_supercell(data: torch.Tensor, n: int, lattice: torch.Tensor =
 
     return supercell, atom_id, cell_id
 
-def create_aperiodic_knn_graph(data: torch.Tensor, k: int):
+def aperiodic_knn_graph_from_supercell(data: torch.Tensor, k: int):
     """
     Create a k-nearest neighbor graph with necessary edge features
     """
@@ -99,7 +99,7 @@ def create_aperiodic_knn_graph(data: torch.Tensor, k: int):
     # KNN graph: dx, r, knn, n_nodes
     g = {'dx': knn_dx, 'r': knn_normalized, 'knn': knn.indices, 'n_nodes': n_nodes, 'k': k}
     
-    return g
+    return Graph(g)
 
 def periodic_graph_from_labeled_supercell(g: Graph, center: int = 1):
     """
@@ -166,7 +166,7 @@ def create_periodic_knn_graph(a: Atoms, k: int = 9):
         cell_id = cell_id[filt]
 
     # create the aperiodic knn graph
-    g = create_aperiodic_knn_graph(supercell, k=k)
+    g = aperiodic_knn_graph_from_supercell(supercell, k=k)
 
     # KNN graph: dx, r, knn, n_nodes
     # Additional: z, atom_id, cell_id
@@ -184,7 +184,32 @@ def create_periodic_knn_graph(a: Atoms, k: int = 9):
     # create the periodic graph
     g = periodic_graph_from_labeled_supercell(g, center=center)
 
-    return Graph(g)
+    return g
+
+def create_aperiodic_knn_graph(a: Atoms, k: int = 9):
+    """
+    Create a periodic k-nearest neighbor graph
+    """
+    # get the stuff
+    data = a.positions
+    lattice = a.cell
+    atomic_numbers = a.numbers
+
+    # create the aperiodic knn graph
+    g = aperiodic_knn_graph_from_supercell(data, k=k)
+
+    # KNN graph: dx, r, knn, n_nodes
+    # Additional: z
+
+    # dx: src (per_node) -> dst (ind) (3)
+    # r: src (per_node) -> dst (ind)
+    # knn: src (per_node) -> dst (ind)
+    # n_nodes: int
+
+    # add the features needed for the periodic graph and z
+    g['z'] = atomic_numbers
+
+    return g
 
 def create_linegraph(g: Graph):
     """
