@@ -16,14 +16,14 @@ class Graph():
                 self.dictionary[key] = value.to(device)
         return self
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         if key == 'n_nodes':
             return self.nodes
         elif key == 'k':
             return self.edges
         return self.dictionary[key]
     
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: torch.Tensor):
         self.dictionary[key] = value
 
     def debug(self):        
