@@ -19,7 +19,7 @@ class Alignn(nn.Module):
                  out_feats: int = 64, 
                  **kwargs: dict[str, bool]):
         super(Alignn, self).__init__()
-        self.kwargs = kwargs
+        self.kwargs: dict[str, bool] = kwargs
 
         self.radial_embedding = radial_basis_func(radial_feats, in_range=(0, 1))
         self.cosine_embedding = radial_basis_func(radial_feats, in_range=(-1, 1))
