@@ -18,7 +18,7 @@ class ModelCombiner(nn.Module):
         x = self.pre_eval_func(x)
         self.output = self.model(x, early_return=False)
 
-        return self.output[:, self.index]
+        return self.output[self.index]
 
 class ModelCombinerPCA(nn.Module):
     def __init__(self, pre_eval_func: Callable, model: nn.Module, pca: torch.Tensor):
