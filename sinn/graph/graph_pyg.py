@@ -2,8 +2,6 @@ import torch
 from math import ceil
 from typing import Union
 
-from nfflr.data.dataset import Atoms
-
 class Graph():
     def __init__(self, dictionary: dict[str, torch.Tensor], nodes: int, edges: int):
         self.dictionary = dictionary
@@ -148,17 +146,17 @@ def periodic_graph_from_labeled_supercell(g: Graph, center: int = 1):
     
     return g
 
-def create_periodic_knn_graph(a: Atoms, k: int = 9):
+def create_periodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     """
     Create a periodic k-nearest neighbor graph
     """
     # get the stuff
-    data = a.positions
-    lattice = a.cell
-    atomic_numbers = a.numbers
+    data = a['positions']
+    lattice = a['cell']
+    atomic_numbers = a['numbers']
 
     # math to get the number of replicates and if we need to filter cuz the box has a lot of atoms
-    n_atoms = data.size()[0]
+    n_atoms = data.shape[0]
     dx = ((k + 1) / n_atoms) ** (1/3) / 2
     center = ceil(dx)
     replicates = center * 2 + 1
