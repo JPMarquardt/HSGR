@@ -12,6 +12,7 @@ class Graph():
         self.to(device)
 
     def to(self, device: str):
+        self.device = device
         for key, value in self.dictionary.items():
             if isinstance(value, torch.Tensor):
                 self.dictionary[key] = value.to(device)
