@@ -60,8 +60,6 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = No
             y = y_to(y)
 
             pred = model(g)
-            print(pred, y, type(y))
-            print(y.device)
             loss = loss_func(pred, y)
             bw_closure()
 

@@ -31,6 +31,7 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
                         )
 
 class_weights = find_class_weights(dataset, target)
+class_weights = class_weights.to(device)
 print(class_weights)
 
 num_classes = class_weights.size(0)
