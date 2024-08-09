@@ -65,6 +65,7 @@ class radial_basis_func(nn.Module):
         self.register_buffer('muk', torch.linspace(in_range[0], in_range[1], in_feats))
 
     def forward(self, r: torch.Tensor):
+        print(r.device)
         muk = self.muk * torch.ones_like(r).unsqueeze(-1)
         exp = torch.exp(-self.gamma * (r.unsqueeze(-1) - muk)**2)
         return exp
