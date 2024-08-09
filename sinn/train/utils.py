@@ -3,6 +3,8 @@ import torch
 def gen_to_func(y, device):
     if isinstance(y, tuple):
         return lambda x: tuple(graph_part.to(device) for graph_part in x)
+    elif isinstance(y, dict):
+        return lambda x: {key: (graph_part.to(device) if isinstance(graph_part, torch.Tensor) else graph_part) for key, graph_part in x.items()}  
     else:
         return lambda x: x.to(device)
 

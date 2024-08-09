@@ -2,9 +2,12 @@ import torch
 import torch.nn as nn
 import pandas
 
+from sinn.dataset.dataset import FilteredAtomsDataset
+
 class RegressionClassificationLoss(nn.Module):
     """
     Custom loss function for combined regression and classification tasks
+    honestly this is ass why did I make this
     """
     def __init__(self, num_classes, class_weights = None, device = None, alpha = 0.5):
         super(RegressionClassificationLoss, self).__init__()
@@ -48,12 +51,12 @@ class RegressionClassificationLoss(nn.Module):
         output = classification_loss * penalty + regression_loss
         return torch.mean(output)
 
-def find_class_weights(dataset, target: str, exponential: bool = False):
+def find_class_weights(dataset: FilteredAtomsDataset, target: str, exponential: bool = False):
     """
     takes AtomsDataset with a target of one hot encoded classes 
     and returns the normalized inverse proportions of each class
     """
-    dataset = dataset.df
+    dataset = dataset.dataset
     target = dataset[target]
     num_classes = target.nunique()
     class_weights = torch.zeros(num_classes)

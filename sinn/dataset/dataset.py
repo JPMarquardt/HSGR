@@ -1,6 +1,8 @@
-from nfflr.data.dataset import AtomsDataset, Atoms #maybe remove this dependence for maybe just JARVIS
+from nfflr.data.dataset import AtomsDataset
 from jarvis.core.atoms import Atoms as jAtoms
 from sinn.dataset.space_groups import spg_properties
+from openeye.oechem import OEGetAtomicNum
+
 
 import torch
 import dgl
@@ -48,6 +50,7 @@ class FilteredAtomsDataset():
 
         self.transform = transform
         self.collate = collate
+        self.target = target
         
         if isinstance(source, str):
             dataset = AtomsDataset(source)
@@ -105,12 +108,40 @@ class FilteredAtomsDataset():
             dataset.reset_index(inplace=True)
 
         print(f'Dataset reduced to size {dataset.shape}')
-        self.dataset = AtomsDataset(df = dataset,
-                                    target = target,
-                                    transform = self.transform,
-                                    custom_collate_fn = self.collate,
-                                    **kwargs)
+
+        self.split = {'train': dataset.index[:int(0.8*len(dataset))],
+                      'val': dataset.index[int(0.8*len(dataset)):int(0.9*len(dataset))],
+                      'test': dataset.index[int(0.9*len(dataset)):]}
+
+        self.dataset = dataset
+        self.dataset['atoms'] = self.dataset['atoms'].apply(convert_dict)
+        self.nextpos = 0
+
         return
+    
+    def __len__(self):
+        return len(self.dataset)
+    
+    def __getitem__(self, idx):
+        if isinstance(idx, int):
+            return (self.transform(self.dataset.loc[idx, 'atoms']), self.dataset.loc[idx, self.target])
+        else:
+            atoms = self.dataset.loc[idx, 'atoms'].apply(self.transform)
+            target = self.dataset.loc[idx, self.target]
+            return list(zip(atoms, target))
+
+
+    def __iter__(self):
+        self.nextpos = 0
+        return self
+    
+    def __next__(self):
+        if self.nextpos >= len(self.dataset):
+            raise StopIteration
+        else:
+            self.nextpos += 1
+            return self[self.nextpos - 1]
+        
 
 def arbitrary_feat(dataset):
     for datapoint in dataset:
@@ -163,9 +194,13 @@ def universe2df(trajectory: Universe, **kwargs) -> pd.DataFrame:
 
     atoms_list = []
     jid_list = []
+
+    atom_types = [OEGetAtomicNum(atom) for atom in atom_types]
+    atom_types = torch.tensor(atom_types)
+
     for id, frame in enumerate(trajectory.trajectory):
         coords = torch.tensor(frame.positions) + torch.sum(lattice_vectors, dim=0) / 2
-        atoms = Atoms(jAtoms(lattice_mat=lattice_vectors, coords=coords, elements=atom_types, cartesian=True))
+        atoms = {'lattice': lattice_vectors, 'positions': coords, 'numbers': atom_types, 'cartesian': True}
         atoms_list.append(atoms)
         jid_list.append(id)
 
@@ -197,44 +232,16 @@ def one_hot_encode(df: pd.DataFrame, column: str) -> pd.DataFrame:
         df.loc[index, column] = spg_tensor_list
     return df
 
-def collate_general(samples: List[Tuple[dgl.DGLGraph, torch.Tensor]]):
-    """Dataloader helper to batch graphs cross `samples`.
-
-    Forces get collated into a graph batch
-    by concatenating along the atoms dimension
-
-    energy and stress are global targets (properties of the whole graph)
-    total energy is a scalar, stess is a rank 2 tensor
-
-    for SPG or other categorization
+def convert_dict(dict: Dict[str, Any]) -> Dict[str, Any]:
     """
-
-    if isinstance(samples[0][0], tuple):
-        graphs, targets = map(list, zip(*samples))
-        g, lg = map(list, zip(*graphs))
-        target_block = torch.stack(targets, 0)
-        return (dgl.batch(g), dgl.batch(lg)), target_block
+    Convert a dictionary to a dictionary with tensors
+    """
+    new_dict = {}
+    if dict.get('positions') is None:
+        new_dict['positions'] = torch.tensor(dict['coords'])
+        new_dict['numbers'] = torch.tensor([OEGetAtomicNum(atoms) for atoms in dict['elements']])
+        new_dict['cell'] = torch.tensor(dict['lattice_mat'])
+        return new_dict
     
-    graphs, targets = map(list, zip(*samples))
-    target_block = torch.stack(targets, 0)
-    return dgl.batch(graphs), target_block
-
-def collate_multihead_noise(batch: Tuple[Tuple[torch.Tensor, dgl.DGLGraph]]):
-    """
-    Create a batch of DGLGraphs
-    """
-    batch, classification_target_list = zip(*batch)
-    g_list, regression_target_list = map(list, zip(*batch))
-    bg = dgl.batch(g_list)
-    target = (torch.stack(classification_target_list), torch.cat(regression_target_list))
-    return bg, target
-
-def collate_noise(batch: Tuple[Tuple[torch.Tensor, dgl.DGLGraph]]):
-    """
-    Create a batch of DGLGraphs
-    """
-    batch, classification_target_list = zip(*batch)
-    g_list, regression_target_list = map(list, zip(*batch))
-    bg = dgl.batch(g_list)
-    target = torch.cat(regression_target_list)
-    return bg, target
+    else:
+        return dict
