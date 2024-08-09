@@ -239,6 +239,7 @@ def create_linegraph(g: Graph):
     Create a line graph from a graph
     """
     h = {}
+    device = g.device
 
     # put in the cosines
     cosine_denomenator = torch.sqrt(torch.sum(g['dx'][:, :, None] ** 2, dim=-1))
@@ -268,4 +269,4 @@ def create_linegraph(g: Graph):
 
     # if we want to go to higher dim we need to create dx for h
     
-    return Graph(h, g.n_nodes, g.k)
+    return Graph(h, g.n_nodes, g.k, device=device)

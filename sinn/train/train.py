@@ -58,7 +58,7 @@ def run_epoch(model, loader, loss_func, optimizer, device, epoch, scheduler = No
         for step, (g, y) in enumerate(tqdm(loader)):
             g = graph_to(g)
             y = y_to(y)
-            print(g.device, y.device)
+
             pred = model(g)
             loss = loss_func(pred, y)
             bw_closure()
