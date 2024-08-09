@@ -12,7 +12,7 @@ from sinn.train.loss import find_class_weights
 date = datetime.now().strftime("%y-%m-%d")
 
 n_atoms = 2
-spg = list(range(195, 231))
+spg = list(range(1, 231))
 
 categorical_filter = ([True],['spg_number'],[spg])
 
@@ -28,7 +28,7 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
                         categorical_filter = categorical_filter,
                         target = target,
                         transform=pre_eval_func,
-                        ).dataset
+                        )
 
 class_weights = find_class_weights(dataset, target)
 print(class_weights)

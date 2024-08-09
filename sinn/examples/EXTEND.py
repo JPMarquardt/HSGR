@@ -4,9 +4,9 @@ from datetime import datetime
 import os
 
 from sinn.dataset.dataset import FilteredAtomsDataset, collate_multihead_noise
-from sinn.model.alignn import Alignn_Multihead
+from sinn.model.alignn_pyg import Alignn
 from sinn.train.train import train_model
-from sinn.train.transforms import NoiseRegressionTrain, PeriodicClassificationTrain
+from sinn.train.transforms_pyg import PeriodicKNN_PyG
 from sinn.train.loss import RegressionClassificationLoss, find_class_weights
 
 
@@ -20,7 +20,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 k = 17
 
-pre_eval_func = PeriodicClassificationTrain(k = k)
+pre_eval_func = PeriodicKNN_PyG(k = k)
 target = 'international_number'
 
 dataset = FilteredAtomsDataset(source = "dft_3d",

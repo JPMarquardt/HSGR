@@ -78,8 +78,6 @@ class Alignn(nn.Module):
         x = torch.sum(x, dim=0)
         x = self.fc2(x)
 
-        print(torch.any(torch.isnan(x)))
-
         return F.softmax(x, dim=-1)
         
         return x.squeeze()
