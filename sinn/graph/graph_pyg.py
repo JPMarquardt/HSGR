@@ -3,10 +3,13 @@ from math import ceil
 from typing import Union
 
 class Graph():
-    def __init__(self, dictionary: dict[str, torch.Tensor], nodes: int, edges: int):
+    def __init__(self, dictionary: dict[str, torch.Tensor], nodes: int, edges: int, device: str = 'cpu'):
         self.dictionary = dictionary
         self.n_nodes = nodes
         self.k = edges
+        self.device = device
+
+        self.to(device)
 
     def to(self, device: str):
         for key, value in self.dictionary.items():
