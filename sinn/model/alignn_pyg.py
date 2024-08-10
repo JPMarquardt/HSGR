@@ -71,12 +71,12 @@ class Alignn(nn.Module):
         #final fully connected layers
         x = g['h']
         x = self.fc(x)
+        x = self.fc2(x)
 
         if early_return:
             return x
         
         x = torch.sum(x, dim=0)
-        x = self.fc2(x)
 
         return F.softmax(x, dim=-1)
         

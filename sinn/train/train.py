@@ -16,11 +16,10 @@ def test_model(model, dataset, device):
     pred_list = []
     model.eval()
 
-    graph_to = gen_to_func(dataset[0], device)
+    graph_to = gen_to_func(dataset[0][0], device)
 
     with torch.no_grad():
         for step, (g, y) in enumerate(tqdm(dataset)):
-
             g = graph_to(g)
 
             pred = model(g)

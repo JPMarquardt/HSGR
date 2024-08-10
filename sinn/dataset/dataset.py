@@ -245,3 +245,47 @@ def convert_dict(dict: Dict[str, Any]) -> Dict[str, Any]:
     
     else:
         return dict
+    
+def big_box_sampler(datapoint: dict, target_n: str) -> list[dict]:
+    """
+    Reduce the size of a dataset
+    """
+    n_atoms = datapoint['positions'].shape[0]
+    dim = datapoint['positions'].shape[1]
+    ratio = target_n / n_atoms
+    ratio = min(ratio, 1)
+    
+    side_ratio = torch.tensor([ratio ** (1/dim)])
+    replicates = torch.floor(1/side_ratio).int()
+
+    if replicates == 1:
+        return [datapoint]
+    
+    datapoint['positions'] = datapoint['positions'] - torch.min(datapoint['positions'], dim=0).values
+    max_pos = torch.max(datapoint['positions'], dim=0).values
+
+    filt_list = [[] for i in range(dim)]
+
+    for i in range(dim):
+        for j in range(replicates):
+            low_filt = datapoint['positions'][:, i] >= j / replicates * max_pos[i]
+            high_filt = datapoint['positions'][:, i] < (j + 1) / replicates * max_pos[i]
+
+            filt = torch.logical_and(low_filt, high_filt)
+            filt_list[i].append(filt)
+
+    new_datapoints = []
+    for i in range(replicates):
+        for j in range(replicates):
+            for k in range(replicates):
+                filt = torch.logical_and(filt_list[0][i], torch.logical_and(filt_list[1][j], filt_list[2][k]))
+                new_datapoint = {}
+                for key in ['positions', 'numbers']:
+                    new_datapoint[key] = datapoint[key][filt]
+                new_datapoints.append(new_datapoint)
+
+    new_dict = {'atoms': new_datapoints, 'target': [0]*len(new_datapoints)}
+    return pd.DataFrame(new_dict)
+
+
+    

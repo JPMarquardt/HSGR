@@ -3,7 +3,7 @@ import torch
 from datetime import datetime
 import os
 
-from sinn.dataset.dataset import FilteredAtomsDataset, collate_multihead_noise
+from sinn.dataset.dataset import FilteredAtomsDataset
 from sinn.model.alignn_pyg import Alignn
 from sinn.train.train import train_model
 from sinn.train.transforms_pyg import PeriodicKNN_PyG
@@ -11,7 +11,7 @@ from sinn.train.loss import RegressionClassificationLoss, find_class_weights
 
 
 n_atoms = 2
-spg = list(range(195,231))
+spg = list(range(1,231))
 
 categorical_filter = ([True],['spg_number'],[spg])
 
@@ -28,7 +28,6 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
                         categorical_filter = categorical_filter,
                         target = target,
                         transform=pre_eval_func,
-                        collate = collate_multihead_noise,
                         ).dataset
 
 
