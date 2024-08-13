@@ -78,5 +78,5 @@ class Alignn(nn.Module):
         
         x = torch.mean(x, dim=0)
 
-        return F.softmax(x, dim=-1)
+        return x
         
