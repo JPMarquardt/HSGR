@@ -28,7 +28,7 @@ dataset = FilteredAtomsDataset(source = "dft_3d",
                         categorical_filter = categorical_filter,
                         target = target,
                         transform=pre_eval_func,
-                        ).dataset
+                        )
 
 
 model_path = f'models/24-08-10/'
