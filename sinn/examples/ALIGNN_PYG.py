@@ -21,7 +21,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 
 pre_eval_func = PeriodicKNN_PyG(k = k)
-target = 'spg_number'
+target = 'international_number'
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
@@ -35,7 +35,7 @@ class_weights = class_weights.to(device)
 print(class_weights)
 
 num_classes = class_weights.size(0)
-num_layers = 8
+num_layers = 4
 
 model = Alignn(num_layers = num_layers, hidden_features = 128, radial_features = 256, out_feats=num_classes, classification=True).to(device)
 model_type_name = type(model).__name__
