@@ -76,8 +76,7 @@ class Alignn(nn.Module):
         if early_return:
             return x
         
-        x = torch.sum(x, dim=0)
+        x = torch.mean(x, dim=0)
 
         return F.softmax(x, dim=-1)
         
-        return x.squeeze()
