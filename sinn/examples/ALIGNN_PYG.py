@@ -35,9 +35,8 @@ class_weights = class_weights.to(device)
 print(class_weights)
 
 num_classes = class_weights.size(0)
-num_layers = 4
+num_layers = 8
 
-alpha = 1
 model = Alignn(num_layers = num_layers, hidden_features = 128, radial_features = 256, out_feats=num_classes, classification=True).to(device)
 model_type_name = type(model).__name__
 
