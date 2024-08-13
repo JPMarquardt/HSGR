@@ -21,7 +21,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 
 pre_eval_func = PeriodicKNN_PyG(k = k)
-target = 'international_number'
+target = 'spg_number'
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
