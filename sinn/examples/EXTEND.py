@@ -38,10 +38,10 @@ model = torch.load(model_path + model_name + '.pkl', map_location=device)
 
 model_name_new = f'Alignn-k17-L4-spg22-n8'
 
-class_weights = find_class_weights(dataset, target)
+class_weights = find_class_weights(dataset, target).to(device)
 num_classes = class_weights.size(0)
 
-loss_func = RegressionClassificationLoss(num_classes=num_classes, class_weights=class_weights, device=device)
+loss_func = torch.nn.CrossEntropyLoss(weight=class_weights)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 scheduler = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=500)
 

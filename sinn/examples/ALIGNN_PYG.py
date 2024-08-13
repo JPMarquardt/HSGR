@@ -49,7 +49,7 @@ model_num = 7
 model_name = f'{model_type_name}-k{k}-L{num_layers}-{target[:3]}{num_classes}-n{model_num}'
 print(model_name)
 
-loss_func = torch.nn.BCELoss(weight=class_weights)
+loss_func = torch.nn.CrossEntropyLoss(weight=class_weights)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
 scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=760)
