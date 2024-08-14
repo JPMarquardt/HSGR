@@ -8,7 +8,7 @@ from MDAnalysis import Universe
 from sinn.dataset.dataset import FilteredAtomsDataset
 from sinn.model.alignn_pyg import Alignn
 from sinn.train.train import test_model
-from sinn.train.transforms_pyg import AperiodicKNN_PyG
+from sinn.train.transforms_pyg import AperiodicKNN_PyG, PeriodicKNN_PyG
 
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -18,7 +18,7 @@ model_name = f'Alignn-k17-L8-spg22-n7'
 
 k = int(model_name.split('-')[1].split('k')[1])
 print(k)
-pre_eval_func = AperiodicKNN_PyG(k = k)
+pre_eval_func = PeriodicKNN_PyG(k = k)
 
 model = torch.load(model_path + model_name + '.pkl', map_location=device)
 
