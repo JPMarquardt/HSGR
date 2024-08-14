@@ -43,6 +43,7 @@ for n, name in enumerate(dataset_names):
 
     # Stack the predictions that are in the correct state
     preds_save = torch.stack(preds[len(preds)//2:])
+    print(preds_save.mean(dim=0))
     for d, dim in enumerate(dims):
         pred = preds_save[:, dim]
         mean_tensor[n, d] = torch.mean(pred)
