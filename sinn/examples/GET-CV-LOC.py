@@ -14,7 +14,7 @@ from sinn.train.transforms_pyg import AperiodicKNN_PyG
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model_path = f'models/24-08-13/'
-model_name = f'Alignn-k17-L4-int5-n7'
+model_name = f'Alignn-k17-L8-spg22-n7'
 
 k = int(model_name.split('-')[1].split('k')[1])
 print(k)
