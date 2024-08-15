@@ -103,7 +103,6 @@ def aperiodic_knn_graph_from_supercell(data: torch.Tensor, k: int):
     dx = data[: , None] - data[None, :]
     r = torch.norm(dx, dim=2)
     knn = torch.topk(r, k=k, dim=1, largest=False)
-    knn = knn.to(r.device)
 
     # necessary things to add to the graph
     knn_normalized = knn.values / torch.max(knn.values, dim=1).values.unsqueeze(1)
@@ -112,7 +111,7 @@ def aperiodic_knn_graph_from_supercell(data: torch.Tensor, k: int):
     knn_dx = torch.gather(dx, 1, knn.indices.unsqueeze(2).expand(-1, -1, dx.size(2)))
 
     # KNN graph: dx, r, knn, n_nodes
-    g = {'dx': knn_dx, 'r': knn_normalized, 'knn': knn.indices}
+    g = {'dx': knn_dx, 'r': knn_normalized, 'knn': knn.indices.to(data.device)}
     
     return Graph(g, n_nodes, k)
 
