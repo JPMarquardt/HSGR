@@ -124,7 +124,7 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
         elif itype == 'N':
             types_ml.append(17)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    types_ml = torch.tensor(types_ml, dtype=np.int32, device=device)
+    types_ml = torch.tensor(types_ml, dtype=torch.int32, device=device)
     
     scale_factor = bias['scale_factor']
     center = bias['center']
