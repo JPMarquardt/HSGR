@@ -41,12 +41,13 @@ def box_filter(data: torch.Tensor, dx: float, lattice: torch.Tensor):
     """
     Filter the data based on the box
     """
+    device = data.device
     # get the lattice position
     inverse_lattice = torch.inverse(lattice)
     lattice_position = data @ inverse_lattice
 
     # initialize the filter
-    full_filter = torch.ones(data.shape[0], dtype=torch.bool)
+    full_filter = torch.ones(data.shape[0], dtype=torch.bool, device=device)
 
     # filter the data based on the center box
     for i in range(data.shape[1]):
@@ -154,6 +155,7 @@ def create_periodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     Create a periodic k-nearest neighbor graph
     """
     device = a['positions'].device
+
     # get the stuff
     data = a['positions']
     lattice = a['cell']
@@ -202,7 +204,7 @@ def create_aperiodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     """
     Create a periodic k-nearest neighbor graph
     """
-    device = a['positions'].device
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # get the stuff
     data = a['positions']
