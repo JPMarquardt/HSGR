@@ -109,7 +109,7 @@ def aperiodic_knn_graph_from_supercell(data: torch.Tensor, k: int):
     knn_dx = torch.gather(dx, 1, knn.indices.unsqueeze(2).expand(-1, -1, dx.size(2)))
 
     # KNN graph: dx, r, knn, n_nodes
-    g = {'dx': knn_dx, 'r': knn_normalized, 'knn': knn.indices}
+    g = {'dx': knn_dx, 'r': knn_normalized, 'knn': knn.indices, 'n_nodes': n_nodes, 'k': k}
     
     return Graph(g, n_nodes, k)
 
@@ -142,11 +142,9 @@ def periodic_graph_from_labeled_supercell(g: Graph, center: int = 1):
     g['src_z'] = edge_feat * g.pop('z')[None, :]
     g['src_z'] = g['src_z'].gather(1, g['knn'])
 
-    """
     # update knn indices to be relative to the in-center atoms
     knn = edge_feat * g.pop('atom_id')[None, :]
     g['knn'] = knn.gather(1, g['knn'])
-    """
     
     return g
 
@@ -250,22 +248,14 @@ def create_linegraph(g: Graph):
     h['r'] = cosine_numerator / cosine_denomenator
     h['r'][h['r'].isnan()] = 0
 
-    """
     # put in the knn features
-    g_knn_1 = g['knn'][:, :, None].expand(-1, -1, g['k'])
-    g_knn_2 = g['knn'][:, None, :].expand(-1, g['k'], -1)
+    h['knn'] = g['knn']
 
     # right now this is not generalizable to more than 2 dimensions, but it is possible using cat instead
-    h['knn'] = torch.stack((g_knn_1, g_knn_2), dim=-1)
-    """
-
     h['dst_z'] = g['dst_z']
 
     # put in the z features
-    g_z_1 = g['src_z'][:, :, None].expand(-1, -1, g.k)
-    g_z_2 = g['src_z'][:, None, :].expand(-1, g.k, -1)
-
-    h['src_z'] = torch.stack((g_z_1, g_z_2), dim=-1)
+    h['src_z'] = g['src_z'][:, :, None].expand(-1, -1, g.k)
 
     # if we want to go to higher dim we need to create dx for h
     

@@ -28,8 +28,8 @@ class color_invariant_triplet(nn.Module):
     def forward(self, g: Graph):
 
         za = g['dst_z'][:, None, None].expand(-1, g.k, g.k)
-        zb = torch.select(g['src_z'], -1, 0)
-        zc = torch.select(g['src_z'], -1, 1)
+        zb = g['src_z']
+        zc = g['src_z'].transpose(1, 2)
 
         zab = torch.eq(za, zb)
         zac = torch.eq(za, zc)
