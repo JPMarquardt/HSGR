@@ -81,9 +81,10 @@ for i in range(len(center_list) - len(first_frame)):
 parameter_list = []
 for i in range(len(center_list)):
     parameter_list.append({'model_name': f'../{model_name}', 
-                          'center': center_list[i], 
-                          'variance': variance_list[i],
+                          'center': center_list[i].tolist(), 
+                          'variance': variance_list[i].tolist(),
                           })
+    print(parameter_list[i])
 
 
 
