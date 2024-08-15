@@ -190,7 +190,7 @@ def main():
         raise ValueError("The bias file must have the .yaml extension.")
     
     with open(args.bias, 'r') as f:
-        bias = yaml.load(f)
+        bias = yaml.load(f, Loader=yaml.FullLoader)
     
     parameters = RunParameters.from_yaml(args.yaml_file)
     parameters.check_types_of_initial_configuration()
