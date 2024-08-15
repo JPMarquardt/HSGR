@@ -12,7 +12,7 @@ from sinn.train.loss import find_class_weights
 date = datetime.now().strftime("%y-%m-%d")
 
 n_atoms = 2
-spg = list(range(195, 231))
+spg = list(range(1, 231))
 
 categorical_filter = ([True],['spg_number'],[spg])
 
@@ -21,7 +21,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 k = 17
 
 pre_eval_func = PeriodicKNN_PyG(k = k)
-target = 'spg_number'
+target = 'international_number'
 
 dataset = FilteredAtomsDataset(source = "dft_3d",
                         n_unique_atoms = (True,n_atoms),
@@ -44,7 +44,7 @@ model_path = f'models/{date}/'
 if not os.path.exists(model_path):
     os.makedirs(model_path)
 
-model_num = 7
+model_num = 8
 model_name = f'{model_type_name}-k{k}-L{num_layers}-{target[:3]}{num_classes}-n{model_num}'
 print(model_name)
 
