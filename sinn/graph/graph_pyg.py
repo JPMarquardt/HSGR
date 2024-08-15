@@ -11,7 +11,7 @@ class Graph():
 
         self.to(device)
 
-    def to(self, device: str):
+    def to(self, device: Union[str, torch.device]):
         self.device = device
         for key, value in self.dictionary.items():
             if isinstance(value, torch.Tensor):
