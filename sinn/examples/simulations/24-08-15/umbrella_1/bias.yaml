@@ -2,6 +2,6 @@ center:
 - 4.8106255531311035
 - 0.10299663245677948
 model_name: ../Alignn-k17-L4-spg22-n7
-variance:
+scale_factor:
 - 3175.088134765625
 - 9916.48828125

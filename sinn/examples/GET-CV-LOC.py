@@ -82,7 +82,7 @@ parameter_list = []
 for i in range(len(center_list)):
     parameter_list.append({'model_name': f'../{model_name}', 
                           'center': center_list[i].tolist(), 
-                          'variance': variance_list[i].tolist(),
+                          'scale_factor': variance_list[i].tolist(),
                           })
     print(parameter_list[i])
 
@@ -103,6 +103,6 @@ for i, parameters in enumerate(parameter_list):
         os.mkdir(os.path.join(umbrella_path, f'umbrella_{i}'))
 
     yaml.dump(parameters, open(os.path.join(umbrella_path, f'umbrella_{i}/bias.yaml'), 'w'))
-    shutil.copyfile(os.path.join(dirname, f'simulations/firstframe_{first_frame[i]}.xyz'), os.path.join(umbrella_path, f'umbrella_{i}/firstframe.xyz'))
+    shutil.copyfile(os.path.join(dirname, f'simulations/firstframe_{first_frame[i]}.xyz'), os.path.join(umbrella_path, f'umbrella_{i}/first_frame.xyz'))
     shutil.copyfile(os.path.join(dirname, 'simulations/UMBRELLA.py'), os.path.join(umbrella_path, f'umbrella_{i}/run.py'))
     shutil.copyfile(os.path.join(dirname, 'simulations/umbrella.sh'), os.path.join(umbrella_path, f'umbrella_{i}/run.sh'))
