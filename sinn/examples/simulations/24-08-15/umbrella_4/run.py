@@ -130,8 +130,8 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     model_name = bias['model_name']
 
     pindex = 4084
-    cv0module = torch.jit.script(CVModule(f'{model_name}-combiner0.pkl', types_ml, pindex))
-    cv1module = torch.jit.script(CVModule(f'{model_name}-combiner1.pkl', types_ml, pindex))
+    cv0module = torch.jit.script(CVModule(f'{model_name}-combiner0.pkl', types_ml))
+    cv1module = torch.jit.script(CVModule(f'{model_name}-combiner1.pkl', types_ml))
     cv0 = TorchForce(cv0module)
     cv1 = TorchForce(cv1module)
     # cv0.setUsesPeriodicBoundaryConditions(True)
