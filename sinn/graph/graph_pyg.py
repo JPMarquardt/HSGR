@@ -11,7 +11,7 @@ class Graph():
 
         self.to(device)
 
-    def to(self, device: Union[str, torch.DeviceObjType]):
+    def to(self, device: str):
         self.device = device
         for key, value in self.dictionary.items():
             if isinstance(value, torch.Tensor):
@@ -204,7 +204,8 @@ def create_aperiodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     """
     Create a periodic k-nearest neighbor graph
     """
-    device = a['positions'].device
+    device = str(a['positions'].device)
+    print(device)
 
     # get the stuff
     data = a['positions']
