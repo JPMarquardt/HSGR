@@ -200,7 +200,7 @@ def universe2df(trajectory: Universe, **kwargs) -> pd.DataFrame:
 
     for id, frame in enumerate(trajectory.trajectory):
         coords = torch.tensor(frame.positions) + torch.sum(lattice_vectors, dim=0) / 2
-        atoms = {'lattice': lattice_vectors, 'positions': coords, 'numbers': atom_types, 'cartesian': True}
+        atoms = {'lattice_mat': lattice_vectors, 'positions': coords, 'numbers': atom_types, 'cartesian': True}
         atoms_list.append(atoms)
         jid_list.append(id)
 
@@ -239,12 +239,24 @@ def convert_dict(dict: Dict[str, Any]) -> Dict[str, Any]:
     new_dict = {}
     if dict.get('positions') is None:
         new_dict['positions'] = torch.tensor(dict['coords'])
-        new_dict['numbers'] = torch.tensor([OEGetAtomicNum(atoms) for atoms in dict['elements']])
-        new_dict['cell'] = torch.tensor(dict['lattice_mat'])
-        return new_dict
-    
     else:
-        return dict
+        new_dict['positions'] = dict['positions']
+    
+    if dict.get('elements') is not None:
+        new_dict['numbers'] = torch.tensor([OEGetAtomicNum(atoms) for atoms in dict['elements']])
+    elif dict.get('numbers') is not None:
+        new_dict['numbers'] = dict['numbers']
+    
+    if dict.get('lattice_mat') is not None:
+        if isinstance(dict['lattice_mat'], torch.Tensor):
+            new_dict['cell'] = dict['lattice_mat']
+        else:
+            new_dict['cell'] = torch.tensor(dict['lattice_mat'])
+    elif dict.get('cell') is not None:
+        new_dict['cell'] = dict['cell']
+    
+    return new_dict
+
     
 def big_box_sampler(datapoint: dict, target_n: str) -> list[dict]:
     """
