@@ -228,7 +228,9 @@ def create_aperiodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     edge_feat = torch.zeros((g.n_nodes, g.n_nodes), dtype=torch.int, device=device)
     
     # expand the edge features to the full graph
-    edge_feat.scatter_(1, g['knn'], True)
+    print(g['knn'].device)
+    print(edge_feat.device)
+    edge_feat = torch.scatter(edge_feat, 1, g['knn'])
 
     # update edge features to be relative to the in-center atoms
     g['src_z'] = edge_feat * g['dst_z'][None, :]
