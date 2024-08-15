@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 import numpy.typing as npt
 import openmm
+import yaml
 from openmm import app
 from openmmtorch import TorchForce
 from colloids import ColloidPotentialsAlgebraic, ColloidPotentialsParameters, ColloidPotentialsTabulated
@@ -24,61 +25,20 @@ class ExampleAction(argparse.Action):
         default_parameters.to_yaml("example.yaml")
         parser.exit()
 
-class CV0Module(torch.nn.Module):
-    def __init__(self, mlp_name, ptypes, pindex):
+class CVModule(torch.nn.Module):
+    def __init__(self, mlp_name, ptypes):
         super().__init__()
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
         else:
             self.device = torch.device("cpu")
 
-        dummy_box = np.eye(3)
-        dummy_box = torch.tensor(dummy_box, dtype=torch.float, device=self.device)
-        
-        self.mlp = load_model(mlp_name, derivative=True, device=self.device,
-                              box_vecs=dummy_box)
+        self.mlp = torch.load(mlp_name, map_location=self.device)
         self.ptypes = torch.tensor(ptypes, dtype=torch.long, device=self.device)
-        self.pindex = pindex
 
-    def forward(self, positions, boxvectors):
-        positions = positions.float()
-        boxvectors = boxvectors.float()
-        # positions = torch.tensor(positions, dtype=torch.float, device=self.device)
-        # boxvectors = torch.tensor(boxvectors, dtype=torch.float, device=self.device)
-        
-        epred, x_embed, x_attn = self.mlp.forward2(self.ptypes, positions,
-                                                   box=boxvectors)
-        # cv0 = torch.mean(x_attn[::2,0])
-        cv0 = x_attn[self.pindex, 0]
-        return cv0
-
-class CV1Module(torch.nn.Module):
-    def __init__(self, mlp_name, ptypes, pindex):
-        super().__init__()
-        if torch.cuda.is_available():
-            self.device = torch.device("cuda")
-        else:
-            self.device = torch.device("cpu")
-
-        dummy_box = np.eye(3)
-        dummy_box = torch.tensor(dummy_box, dtype=torch.float, device=self.device)
-        
-        self.mlp = load_model(mlp_name, derivative=True, device=self.device,
-                              box_vecs=dummy_box)
-        self.ptypes = torch.tensor(ptypes, dtype=torch.long, device=self.device)
-        self.pindex = pindex
-
-    def forward(self, positions, boxvectors):
-        positions = positions.float()
-        boxvectors = boxvectors.float()
-        # positions = torch.tensor(positions, dtype=torch.float, device=self.device)
-        # boxvectors = torch.tensor(boxvectors, dtype=torch.float, device=self.device)
-        
-        epred, x_embed, x_attn = self.mlp.forward2(self.ptypes, positions,
-                                                   box=boxvectors)
-        # cv1 = torch.mean(x_attn[::2,1])
-        cv1 = x_attn[self.pindex,1]
-        return cv1
+    def forward(self, positions):
+        datapoint = {'positions': positions, 'numbers': self.ptypes}
+        return self.mlp(datapoint)
 
 class CVReporter(object):
     def __init__(self, file, reportInterval, cv0, cv1):
@@ -101,7 +61,7 @@ class CVReporter(object):
         self._out.flush()
 
 def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
-                      cell: npt.NDArray[float]) -> app.Simulation:
+                      cell: npt.NDArray[float], bias: dict[str, tuple[float]]) -> app.Simulation:
     topology = app.topology.Topology()
     chain = topology.addChain()
     residue = topology.addResidue("res1", chain)
@@ -165,23 +125,27 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
             types_ml.append(17)
     types_ml = np.array(types_ml, dtype=np.int32)
     
+    scale_factor = bias['scale_factor']
+    center = bias['center']
+    model_name = bias['model_name']
+
     pindex = 4084
-    cv0module = torch.jit.script(CV0Module('model.ckpt', types_ml, pindex))
-    cv1module = torch.jit.script(CV1Module('model.ckpt', types_ml, pindex))
+    cv0module = torch.jit.script(CVModule(f'{model_name}-combiner0.pkl', types_ml, pindex))
+    cv1module = torch.jit.script(CVModule(f'{model_name}-combiner1.pkl', types_ml, pindex))
     cv0 = TorchForce(cv0module)
     cv1 = TorchForce(cv1module)
-    cv0.setUsesPeriodicBoundaryConditions(True)
-    cv1.setUsesPeriodicBoundaryConditions(True)
+    # cv0.setUsesPeriodicBoundaryConditions(True)
+    # cv1.setUsesPeriodicBoundaryConditions(True)
 
     pullingForce0 = openmm.CustomCVForce('0.5 * fc_pull0 * (cv0 - r0)^2')
-    pullingForce0.addGlobalParameter('fc_pull0', 1e4)
-    pullingForce0.addGlobalParameter('r0', -0.2422)
+    pullingForce0.addGlobalParameter('fc_pull0', scale_factor[0])
+    pullingForce0.addGlobalParameter('r0', center[0])
     pullingForce0.addCollectiveVariable('cv0', cv0)
     system.addForce(pullingForce0)
 
     pullingForce1 = openmm.CustomCVForce('0.5 * fc_pull1 * (cv1 - r1)^2')
-    pullingForce1.addGlobalParameter('fc_pull1', 1e3)
-    pullingForce1.addGlobalParameter('r1', 1.564)
+    pullingForce1.addGlobalParameter('fc_pull1', scale_factor[1])
+    pullingForce1.addGlobalParameter('r1', center[1])
     pullingForce1.addCollectiveVariable('cv1', cv1)
     system.addForce(pullingForce1)
         
@@ -215,18 +179,25 @@ def set_up_reporters(parameters: RunParameters, simulation: app.Simulation, appe
 def main():
     parser = argparse.ArgumentParser(description="Run OpenMM for a colloids system.")
     parser.add_argument("yaml_file", help="YAML file with simulation parameters", type=str)
+    parser.add_argument("bias", help="bias parameters", type=str)
     parser.add_argument("--example", help="write an example YAML file and exit", action=ExampleAction)
     args = parser.parse_args()
 
     if not args.yaml_file.endswith(".yaml"):
         raise ValueError("The YAML file must have the .yaml extension.")
-
+    
+    if not args.bias.endswith(".yaml"):
+        raise ValueError("The bias file must have the .yaml extension.")
+    
+    with open(args.bias, 'r') as f:
+        bias = yaml.load(f)
+    
     parameters = RunParameters.from_yaml(args.yaml_file)
     parameters.check_types_of_initial_configuration()
 
     types, positions, cell = read_xyz_file(parameters.initial_configuration)
 
-    simulation = set_up_simulation(parameters, types, cell)
+    simulation = set_up_simulation(parameters, types, cell, bias)
 
     simulation.context.setPositions(positions)
     if parameters.velocity_seed is not None:
