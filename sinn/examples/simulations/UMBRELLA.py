@@ -36,8 +36,8 @@ class CVModule(torch.nn.Module):
         self.mlp = torch.load(mlp_name, map_location=self.device)
         self.ptypes = torch.tensor(ptypes, dtype=torch.long, device=self.device)
 
-    def forward(self, positions):
-        datapoint = {'positions': positions, 'numbers': self.ptypes}
+    def forward(self, positions: torch.Tensor):
+        datapoint = {'positions': positions.to(self.device), 'numbers': self.ptypes.to(self.device)}
         return self.mlp(datapoint)
 
 class CVReporter(object):
