@@ -62,6 +62,7 @@ def create_labeled_supercell(data: torch.Tensor, n: int, lattice: torch.Tensor =
     """
     Create a supercell
     """
+    device = data.device
     
     if lattice is None:
         lattice = torch.eye(3)
@@ -76,13 +77,13 @@ def create_labeled_supercell(data: torch.Tensor, n: int, lattice: torch.Tensor =
     norm_props = torch.ceil(lattice_vector_norm_prop * n).int()
 
     # create the atom ids
-    atom_id = torch.arange(n_atoms, dtype=torch.int)
+    atom_id = torch.arange(n_atoms, dtype=torch.int, device=device)
     atom_id = atom_id.repeat(n**3)
 
     # create the cell ids
-    cell_id_1 = torch.arange(n, dtype=torch.int).repeat(n_atoms * n**2)
-    cell_id_2 = torch.arange(n, dtype=torch.int).repeat(n_atoms * n).repeat_interleave(n)
-    cell_id_3 = torch.arange(n, dtype=torch.int).repeat(n_atoms).repeat_interleave(n**2)
+    cell_id_1 = torch.arange(n, dtype=torch.int, device=device).repeat(n_atoms * n**2)
+    cell_id_2 = torch.arange(n, dtype=torch.int, device=device).repeat(n_atoms * n).repeat_interleave(n)
+    cell_id_3 = torch.arange(n, dtype=torch.int, device=device).repeat(n_atoms).repeat_interleave(n**2)
     cell_id = torch.stack((cell_id_1, cell_id_2, cell_id_3), dim=1)
 
     # create the supercell
@@ -152,6 +153,7 @@ def create_periodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     """
     Create a periodic k-nearest neighbor graph
     """
+    device = a['positions'].device
     # get the stuff
     data = a['positions']
     lattice = a['cell']
