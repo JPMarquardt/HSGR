@@ -123,13 +123,13 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
             types_ml.append(55)
         elif itype == 'N':
             types_ml.append(17)
-    types_ml = np.array(types_ml, dtype=np.int32)
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    types_ml = torch.tensor(types_ml, dtype=np.int32, device=device)
     
     scale_factor = bias['scale_factor']
     center = bias['center']
     model_name = bias['model_name']
 
-    pindex = 4084
     cv0module = torch.jit.script(CVModule(f'{model_name}-combiner0.pkl', types_ml))
     cv1module = torch.jit.script(CVModule(f'{model_name}-combiner1.pkl', types_ml))
     cv0 = TorchForce(cv0module)
