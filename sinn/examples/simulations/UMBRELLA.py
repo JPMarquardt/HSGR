@@ -42,7 +42,7 @@ class CVModule(torch.nn.Module):
         positions = positions.float()
         print(positions.dtype)
         datapoint = {'positions': positions, 'numbers': self.ptypes}
-        return self.mlp(datapoint)
+        return torch.mean(self.mlp(datapoint))
 
 class CVReporter(object):
     def __init__(self, file, reportInterval, cv0, cv1):
