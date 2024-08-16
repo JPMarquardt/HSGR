@@ -61,8 +61,6 @@ class Alignn(nn.Module):
         h['h'] = g['h_edge']
         h['h_edge'] = self.triplet_embedding(h)
 
-        g.debug()
-
         #update node and edge features
         for layer in self.layers:
             g['h_edge'] = h['h']
@@ -70,7 +68,6 @@ class Alignn(nn.Module):
             g['h'] = g['h'] + x
             h['h'] = h['h'] + y
         
-        g.debug()
         #final fully connected layers
         x = g['h']
         x = self.fc(x)
