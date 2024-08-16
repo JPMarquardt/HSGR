@@ -39,6 +39,7 @@ class CVModule(torch.nn.Module):
     def forward(self, positions: torch.Tensor):
         positions = positions.to(self.device)
         positions = positions.type(torch.float64)
+        print(positions.dtype)
         datapoint = {'positions': positions, 'numbers': self.ptypes}
         return self.mlp(datapoint)
 
