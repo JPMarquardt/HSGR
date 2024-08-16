@@ -38,8 +38,8 @@ class SchnetConv(nn.Module):
     def forward(self, g: Graph):
         bf = g['bf']
 
-        print(bf.dtype)
-        print(self.FGN_MLP1.linear.weight.dtype)
+        print(bf)
+        print(self.FGN_MLP1.linear.weight)
         bf = self.FGN_MLP1(bf)
         bf = self.FGN_MLP2(bf)
 
