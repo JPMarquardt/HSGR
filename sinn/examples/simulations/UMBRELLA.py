@@ -3,7 +3,8 @@ import numpy as np
 import numpy.typing as npt
 import openmm
 import yaml
-from openmm import app
+
+from openmm import app, unit
 from openmmtorch import TorchForce
 from colloids import ColloidPotentialsAlgebraic, ColloidPotentialsParameters, ColloidPotentialsTabulated
 from colloids.gsd_reporter import GSDReporter
@@ -75,7 +76,44 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     topology.setPeriodicBoxVectors(cell)
 
     system = openmm.System()
-    system.setDefaultPeriodicBoxVectors(openmm.Vec3(*cell[0]), openmm.Vec3(*cell[1]), openmm.Vec3(*cell[2]))
+
+    include_walls = any(parameters.wall_directions)
+    all_walls = all(parameters.wall_directions)
+    if include_walls:
+        box_vector_one = cell[0]
+        box_vector_two = cell[1]
+        box_vector_three = cell[2]
+        if not (box_vector_one[1] == 0.0 and box_vector_one[2] == 0.0 and
+                box_vector_two[0] == 0.0 and box_vector_two[2] == 0.0 and
+                box_vector_three[0] == 0.0 and box_vector_three[1] == 0.0):
+            raise ValueError("If any wall is included, the box vectors must be parallel to the coordinate axes.")
+        wall_distances = (box_vector_one[0] * (unit.nano * unit.meter) if parameters.wall_directions[0] else None,
+                          box_vector_two[1] * (unit.nano * unit.meter)if parameters.wall_directions[1] else None,
+                          box_vector_three[2] * (unit.nano * unit.meter) if parameters.wall_directions[2] else None)
+        final_cell = cell.copy()
+        if not all_walls:
+            for index, wall_direction in enumerate(parameters.wall_directions):
+                if wall_direction:
+                    # The shifted Lennard Jones walls diverge at distance r = radius - 1 from the location of the wall,
+                    # where radius is the radius of the particle. The minimum distance between periodic images through
+                    # a wall is thus 2 * radius_min - 2, where radius_min is the smallest radius in the system.
+                    # The maximum cutoff of the electrostatic interactions is
+                    # 2 * radius_max + cutoff_factor * debye_length. In order to prevent particles from interacting
+                    # through the walls, we thus increase the length of the periodic box vectors (not the wall) by
+                    # 2 * (radius_max - radius_min) + 2 + cutoff_factor * debye_length.
+                    final_cell[index][index] += \
+                        (2.0 * (max(parameters.radii.values()) - min(parameters.radii.values()))
+                         + 2.0 * (unit.nano * unit.meter)
+                         + parameters.cutoff_factor * parameters.debye_length).value_in_unit(unit.nano * unit.meter)
+    else:
+        wall_distances = None
+        final_cell = cell
+
+    if not all_walls:
+        topology.setPeriodicBoxVectors(final_cell)
+        system.setDefaultPeriodicBoxVectors(openmm.Vec3(*final_cell[0]), openmm.Vec3(*final_cell[1]),
+                                            openmm.Vec3(*final_cell[2]))
+
     # Prevent printing the traceback when the platform is not existing.
     platform = openmm.Platform.getPlatformByName(parameters.platform_name)
 
