@@ -51,16 +51,16 @@ print(model_name)
 loss_func = torch.nn.CrossEntropyLoss(weight=class_weights)
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=760)
-scheduler2 = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=15, eta_min=0.0001)
-scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, [scheduler1, scheduler2], milestones=[760])
+scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.1, total_iters=10)
+scheduler2 = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.9, last_epoch=-1)
+scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, [scheduler1, scheduler2], milestones=[10])
 
 train_model(model = model,
             dataset = dataset,
             loss_func = loss_func,
             optimizer = optimizer,
             scheduler=scheduler,
-            n_epochs = 1000,
+            n_epochs = 100,
             batch_size=1,
             model_name=model_name,
             save_path = model_path,
