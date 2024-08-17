@@ -10,7 +10,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model_path = f'models/24-08-16/'
 date = model_path.split('/')[-2]
-model_name = f'Alignn-k17-L4-spg22-n7'
+model_name = f'Alignn-k17-L4-spg22-n8'
 
 base_model = torch.load(f'{model_path}{model_name}.pkl', map_location=device)
 
