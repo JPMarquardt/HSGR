@@ -94,7 +94,6 @@ import shutil
 
 dirname = os.path.dirname(__file__)
 umbrella_path = os.path.join(dirname, f'simulations/{model_path.split("/")[-2]}/')
-umbrella_path = f'24-08-15/'
 
 if not os.path.exists(os.path.join(dirname, 'simulations')):
     os.mkdir(umbrella_path)
