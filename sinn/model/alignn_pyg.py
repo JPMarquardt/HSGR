@@ -76,7 +76,7 @@ class Alignn(nn.Module):
         x = self.fc2(x)
 
         if early_return:
-            print(torch.mean(x, dim = 0)[-7: -9])
+            print(torch.mean(x, dim = 0)[-7], torch.mean(x, dim = 0)[-8])
 
             return x
         
