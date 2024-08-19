@@ -21,6 +21,7 @@ class Alignn(nn.Module):
         super(Alignn, self).__init__()
         self.kwargs: dict[str, bool] = kwargs
 
+        self.radial_feats = radial_feats
         self.radial_embedding = radial_basis_func(radial_feats, in_range=(0, 1))
         self.cosine_embedding = radial_basis_func(radial_feats, in_range=(-1, 1))
 
@@ -47,13 +48,14 @@ class Alignn(nn.Module):
         else:
             h = create_linegraph(g)
 
+        n = g.n_nodes
+
         g['cutoff'] = self.cutoff(g['r'])
-        g['bf'] = self.radial_embedding(g['r'])
+        g['bf'] = torch.ones(n, g.k, self.radial_feats)
+        #g['bf'] = self.radial_embedding(g['r'])
 
         h['cutoff'] = g['cutoff'].unsqueeze(-1).expand(-1, -1, h.k)
         h['bf'] = self.cosine_embedding(h['r'])
-
-        n = g.n_nodes
 
         #x, y, z
         g['h'] = self.node_embedding.unsqueeze(0).expand(n, -1)
