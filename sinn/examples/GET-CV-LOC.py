@@ -95,8 +95,9 @@ import shutil
 dirname = os.path.dirname(__file__)
 umbrella_path = os.path.join(dirname, f'simulations/{model_path.split("/")[-2]}/')
 
-if not os.path.exists(os.path.join(dirname, 'simulations')):
+if not os.path.exists(umbrella_path):
     os.mkdir(umbrella_path)
+    print('Created umbrella path')
 
 for i, parameters in enumerate(parameter_list):
     if not os.path.exists(os.path.join(umbrella_path, f'umbrella_{i}')):
