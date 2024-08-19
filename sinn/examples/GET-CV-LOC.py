@@ -104,5 +104,5 @@ for i, parameters in enumerate(parameter_list):
         os.mkdir(os.path.join(umbrella_path, f'umbrella_{i}'))
 
     yaml.dump(parameters, open(os.path.join(umbrella_path, f'umbrella_{i}/bias.yaml'), 'w'))
-    shutil.copyfile(os.path.join(dirname, f'simulations/firstframe_{first_frame[i]}.xyz'), os.path.join(umbrella_path, f'umbrella_{i}/first_frame.xyz'))
+    shutil.copyfile(os.path.join(dirname, f'simulations/firstframe_{first_frame[i]}.xyz'), os.path.join(umbrella_path, f'umbrella_{i}/firstframe.xyz'))
     shutil.copyfile(os.path.join(dirname, 'simulations/umbrella.sbatch'), os.path.join(umbrella_path, f'umbrella_{i}/run.sbatch'))
