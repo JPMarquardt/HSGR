@@ -44,7 +44,7 @@ model_path = f'models/{date}/'
 if not os.path.exists(model_path):
     os.makedirs(model_path)
 
-model_num = 8
+model_num = 7
 model_name = f'{model_type_name}-k{k}-L{num_layers}-{target[:3]}{num_classes}-n{model_num}'
 print(model_name)
 
