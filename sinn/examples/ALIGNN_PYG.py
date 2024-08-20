@@ -18,7 +18,7 @@ categorical_filter = ([True],['spg_number'],[spg])
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-k = 17
+k = 19
 
 pre_eval_func = PeriodicKNN_PyG(k = k)
 target = 'spg_number'
