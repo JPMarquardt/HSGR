@@ -25,7 +25,7 @@ class Alignn(nn.Module):
         self.radial_embedding = radial_basis_func(radial_feats, in_range=(0, 1))
         self.cosine_embedding = radial_basis_func(radial_feats, in_range=(-1, 1))
 
-        self.cutoff = SmoothCutoff(1.0)
+        self.cutoff = SmoothCutoff(0.95)
 
         self.register_buffer('node_embedding', torch.ones(hidden_feats), persistent=False)
         self.edge_embedding = color_invariant_duplet(hidden_feats)
@@ -55,6 +55,7 @@ class Alignn(nn.Module):
         #g['bf'] = self.radial_embedding(g['r'])
 
         h['cutoff'] = g['cutoff'].unsqueeze(-1).expand(-1, -1, h.k)
+        h['cutoff'] = torch.min(h['cutoff'], h['cutoff'].transpose(1, 2))
         h['bf'] = self.cosine_embedding(h['r'])
 
         #x, y, z

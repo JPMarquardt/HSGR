@@ -41,7 +41,7 @@ class SmoothCutoff(nn.Module):
 
         v = torch.zeros_like(r)
         r2 = r ** 2
-        aboveCutOff = r2 > cutoff2
+        aboveCutOff = r2 >= cutoff2
         belowCutOff = ~aboveCutOff
 
         rm = r[belowCutOff].abs() / self.cutoff
