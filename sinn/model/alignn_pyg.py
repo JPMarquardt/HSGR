@@ -3,13 +3,13 @@ import numpy as np
 
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
+
 from sinn.layers.layers_pyg import AlignnConv
 from sinn.graph.graph_pyg import create_linegraph, Graph
 from sinn.layers.embeddings_pyg import color_invariant_duplet, color_invariant_triplet
 from sinn.layers.utils_pyg import radial_basis_func, MLP, SmoothCutoff
-from typing import (Any, Dict, List, Literal, Tuple, Union, Optional, Callable)
 
-import torch.nn.functional as F
 
 class Alignn(nn.Module):
     def __init__(self, 
@@ -51,8 +51,8 @@ class Alignn(nn.Module):
         n = g.n_nodes
 
         g['cutoff'] = self.cutoff(g['r'])
-        #g['bf'] = torch.ones((n, g.k, self.radial_feats), device=g.device)
-        g['bf'] = self.radial_embedding(g['r'])
+        g['bf'] = torch.ones((n, g.k, self.radial_feats), device=g.device)
+        #g['bf'] = self.radial_embedding(g['r'])
 
         h['cutoff'] = g['cutoff'].unsqueeze(-1).expand(-1, -1, h.k)
         h['cutoff'] = torch.min(h['cutoff'], h['cutoff'].transpose(1, 2))

@@ -42,7 +42,7 @@ def main(model_path: Union[str, None] = None):
     model_type_name = type(model).__name__
 
     if model_path is None:
-        date = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        date = datetime.now().strftime("%Y-%m-%d")
         model_path = f'models/{date}/'
         if not os.path.exists(model_path):
             os.makedirs(model_path)
