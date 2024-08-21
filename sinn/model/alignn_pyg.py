@@ -61,7 +61,7 @@ class Alignn(nn.Module):
         #x, y, z
         g['h'] = self.node_embedding.unsqueeze(0).expand(n, -1)
         g['h_edge'] = self.edge_embedding(g)
-        h['h'] = g['h_edge']
+        h['h'] = g['h_edge'].clone()
         h['h_edge'] = self.triplet_embedding(h)
 
         #update node and edge features
