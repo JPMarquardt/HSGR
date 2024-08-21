@@ -51,8 +51,8 @@ class Alignn(nn.Module):
         n = g.n_nodes
 
         g['cutoff'] = self.cutoff(g['r'])
-        g['bf'] = torch.ones((n, g.k, self.radial_feats), device=g.device)
-        #g['bf'] = self.radial_embedding(g['r'])
+        #g['bf'] = torch.ones((n, g.k, self.radial_feats), device=g.device)
+        g['bf'] = self.radial_embedding(g['r'])
 
         h['cutoff'] = g['cutoff'].unsqueeze(-1).expand(-1, -1, h.k)
         h['cutoff'] = torch.min(h['cutoff'], h['cutoff'].transpose(1, 2))
@@ -73,7 +73,7 @@ class Alignn(nn.Module):
         
         #final fully connected layers
         x = g['h']
-        
+
         x = self.fc(x)
         x = self.fc2(x)
 
