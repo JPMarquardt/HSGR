@@ -53,14 +53,14 @@ def main(model_path: Union[str, None] = None):
     else:
         model_name = model_path.split('/')[-1].split('.')[0]
         model_path = model_path.split(model_name)[0]
-        
+
     print(model_name)
 
     loss_func = torch.nn.CrossEntropyLoss(weight=class_weights)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
     scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.5, total_iters=10)
-    scheduler2 = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100, eta_min=1e-6)
+    scheduler2 = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30, eta_min=1e-6)
     scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, [scheduler1, scheduler2], milestones=[20])
 
     train_model(model = model,
