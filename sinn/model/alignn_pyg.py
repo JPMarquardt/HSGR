@@ -72,13 +72,15 @@ class Alignn(nn.Module):
             h['h'] = h['h'] + y
         
         #final fully connected layers
+        x = g['h']
+        
         x = self.fc(x)
         x = self.fc2(x)
 
         if early_return:
             return x
         
-        x = torch.mean(g['h'], dim=0)
+        x = torch.mean(x, dim=0)
 
         return x
         
