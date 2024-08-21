@@ -1,6 +1,9 @@
 import torch.nn as nn
 import torch
 import math
+import os
+import yaml
+import shutil
 import importlib
 
 import argparse
@@ -20,7 +23,6 @@ def main(model_path):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     k = int(model_name.split('-')[1].split('k')[1])
-    print(k)
     pre_eval_func = AperiodicKNN_PyG(k = k)
 
     model = torch.load(model_path + model_name + '.pkl', map_location=device)
@@ -86,13 +88,6 @@ def main(model_path):
                             'center': center_list[i].tolist(), 
                             'scale_factor': variance_list[i].tolist(),
                             })
-        print(parameter_list[i])
-
-
-
-    import os
-    import yaml
-    import shutil
 
     dirname = os.path.dirname(__file__)
     umbrella_path = os.path.join(dirname, f'simulations/{model_path.split("/")[-2]}/')
