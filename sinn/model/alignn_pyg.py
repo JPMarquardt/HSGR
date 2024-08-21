@@ -61,7 +61,7 @@ class Alignn(nn.Module):
         #x, y, z
         g['h'] = self.node_embedding.unsqueeze(0).expand(n, -1)
         g['h_edge'] = self.edge_embedding(g)
-        h['h'] = g['h_edge'].clone()
+        h['h'] = g['h_edge']
         h['h_edge'] = self.triplet_embedding(h)
 
         #update node and edge features
@@ -72,13 +72,13 @@ class Alignn(nn.Module):
             h['h'] = h['h'] + y
         
         #final fully connected layers
-        x = torch.mean(g['h'], dim=0)
-
         x = self.fc(x)
         x = self.fc2(x)
 
         if early_return:
             return x
         
+        x = torch.mean(g['h'], dim=0)
+
         return x
         

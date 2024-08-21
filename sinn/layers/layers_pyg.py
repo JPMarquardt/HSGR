@@ -44,7 +44,7 @@ class SchnetConv(nn.Module):
         g['h_src'] = torch.index_select(g['h'], 0 , g['knn'].flatten())
         g['h_src'] = g['h_src'].unflatten(0, g['knn'].shape)
 
-        h = torch.sum(g['h_src'] * bf * g['h_edge'] * g['cutoff'].unsqueeze(-1), dim=-2)
+        h = torch.mean(g['h_src'] * bf * g['h_edge'] * g['cutoff'].unsqueeze(-1), dim=-2)
 
         out = self.IB_MLP1(h)
         return self.IB_MLP2(out)
