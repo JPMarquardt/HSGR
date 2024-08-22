@@ -1,0 +1,5 @@
+    started at: Thu Aug 22 04:08:50 PM EDT 2024
+Warning: importing 'simtk.openmm' is deprecated.  Import 'openmm' instead.
+/scratch/jpm9731/colloids/colloids/shifted_lennard_jones_walls.py:94: UserWarning: The force of the shifted Lennard-Jones potential as a wall is only continuous if alpha = 1.
+  warnings.warn("The force of the shifted Lennard-Jones potential as a wall is only continuous if alpha = 1.")
+  0%|          | 0/1000000 [00:00<?, ?steps/s]  1%|          | 10000/1000000 [11:11<18:27:30, 14.90steps/s]  2%|▏         | 20000/1000000 [22:03<17:58:20, 15.15steps/s]  3%|▎         | 30000/1000000 [32:55<17:41:19, 15.23steps/s]  4%|▍         | 40000/1000000 [43:48<17:27:52, 15.27steps/s]  5%|▌         | 50000/1000000 [54:40<17:15:23, 15.29steps/s]  6%|▌         | 60000/1000000 [1:05:33<17:03:45, 15.30steps/s]  7%|▋         | 70000/1000000 [1:16:25<16:52:14, 15.31steps/s]  8%|▊         | 80000/1000000 [1:27:17<16:40:55, 15.32steps/s]  9%|▉         | 90000/1000000 [1:38:09<16:29:45, 15.32steps/s]

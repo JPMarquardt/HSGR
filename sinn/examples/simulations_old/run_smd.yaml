@@ -1,0 +1,67 @@
+brush_density: !Quantity
+  unit: /(nanometer**2)
+  value: 0.09
+brush_length: !Quantity
+  unit: nanometer
+  value: 10.0
+checkpoint_filename: checkpoint.chk
+checkpoint_interval: 50000
+collision_rate: !Quantity
+  unit: /picosecond
+  value: 0.01
+cutoff_factor: 21.0
+debye_length: !Quantity
+  unit: nanometer
+  value: 5.4142
+dielectric_constant: 80.0
+initial_configuration: firstframe.xyz
+integrator_seed: null
+masses:
+  N: !Quantity
+    unit: dalton
+    value: 1.884998982291879
+  P: !Quantity
+    unit: dalton
+    value: 1.0
+minimize_energy_initially: false
+platform_name: CUDA
+radii:
+  N: !Quantity
+    unit: nanometer
+    value: 105.0
+  P: !Quantity
+    unit: nanometer
+    value: 85.0
+run_steps: 1000000
+state_data_filename: state_data.csv
+state_data_interval: 100
+surface_potentials:
+  N: !Quantity
+    unit: millivolt
+    value: -30.0
+  P: !Quantity
+    unit: millivolt
+    value: 70.0
+temperature: !Quantity
+  unit: kelvin
+  value: 300.0
+timestep: !Quantity
+  unit: picosecond
+  value: 0.05
+trajectory_filename: trajectory.gsd
+trajectory_interval: 100
+use_log: false
+use_tabulated: false
+velocity_seed: null
+# wall_directions:
+#   - false
+#   - false
+#   - false
+epsilon: !Quantity
+  unit: kilojoule/mole
+  value: 10
+alpha: 0.0
+wall_directions:
+  - true
+  - true
+  - true
