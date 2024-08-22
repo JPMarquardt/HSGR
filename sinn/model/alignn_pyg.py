@@ -23,6 +23,7 @@ class Alignn(nn.Module):
 
         self.radial_feats = radial_feats
         self.radial_embedding = radial_basis_func(radial_feats, in_range=(0, 1))
+        #self.radial_embedding = lambda x: torch.ones_like(x).unsqueeze(-1).expand(-1, -1, radial_feats)
         self.cosine_embedding = radial_basis_func(radial_feats, in_range=(-1, 1))
 
         self.cutoff = SmoothCutoff(0.95)
@@ -51,8 +52,7 @@ class Alignn(nn.Module):
         n = g.n_nodes
 
         g['cutoff'] = self.cutoff(g['r'])
-        g['bf'] = torch.ones((n, g.k, self.radial_feats), device=g.device)
-        #g['bf'] = self.radial_embedding(g['r'])
+        g['bf'] = self.radial_embedding(g['r'])
 
         h['cutoff'] = g['cutoff'].unsqueeze(-1).expand(-1, -1, h.k)
         h['cutoff'] = torch.min(h['cutoff'], h['cutoff'].transpose(1, 2))
