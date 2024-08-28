@@ -59,7 +59,7 @@ def main(model_path: Union[str, None] = None):
     loss_func = torch.nn.CrossEntropyLoss(weight=class_weights)
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 
-    scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.5, total_iters=10)
+    scheduler1 = torch.optim.lr_scheduler.ConstantLR(optimizer, factor=0.5, total_iters=10000)
     scheduler2 = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=30, eta_min=1e-6)
     scheduler = torch.optim.lr_scheduler.SequentialLR(optimizer, [scheduler1, scheduler2], milestones=[20])
 
@@ -67,8 +67,8 @@ def main(model_path: Union[str, None] = None):
                 dataset = dataset,
                 loss_func = loss_func,
                 optimizer = optimizer,
-                scheduler=scheduler,
-                n_epochs = 100,
+                scheduler=scheduler1,
+                n_epochs = 10000,
                 batch_size=1,
                 model_name=model_name,
                 save_path = model_path,
