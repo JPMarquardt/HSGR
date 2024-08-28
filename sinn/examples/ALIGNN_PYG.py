@@ -8,7 +8,7 @@ from typing import Union
 from sinn.dataset.dataset import FilteredAtomsDataset
 from sinn.model.alignn_pyg import Alignn
 from sinn.train.train import train_model
-from sinn.train.transforms_pyg import PeriodicKNN_PyG
+from sinn.train.transforms_pyg import PeriodicKNN_PyG, AddNoise
 from sinn.train.loss import find_class_weights
 
 def main(model_path: Union[str, None] = None):
@@ -22,6 +22,8 @@ def main(model_path: Union[str, None] = None):
     k = 19
 
     pre_eval_func = PeriodicKNN_PyG(k = k)
+    pre_eval_func = AddNoise(std=0.1, transform=pre_eval_func)
+    
     target = 'spg_number'
 
     dataset = FilteredAtomsDataset(source = "dft_3d",
