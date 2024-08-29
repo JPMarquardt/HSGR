@@ -36,6 +36,6 @@ class AddNoise(nn.Module):
         dist_matrix = torch.norm(dist_matrix, dim=-1)
         min_dist = torch.min(dist_matrix[dist_matrix > 0])
         noise = torch.randn_like(data) * self.std * min_dist
-        data += noise
-        
-        return self.transform(data)
+        x['positions'] += noise
+
+        return self.transform(x)
