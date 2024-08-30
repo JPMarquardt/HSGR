@@ -30,7 +30,7 @@ def main(model_path):
     dataset_names = ['CsCl.gsd', 'aggr.gsd', 'Th3P4.gsd']
     sparsity = [1000, 1000, 1000]
 
-    pos_dims = [-7, [15, 16, 15]]
+    pos_dims = [16, [15, 16, 15]]
     neg_dims = [None, 'all']
     n_interpolation_points = 5
     mean_tensor = torch.zeros((len(dataset_names), len(pos_dims)))
@@ -51,8 +51,7 @@ def main(model_path):
         preds_save = torch.stack(preds[len(preds)//2:])
         print(preds_save.mean(dim=0))
         for d in range(len(pos_dims)):
-            print(preds_save)
-            pos_pred = torch.index_select(preds_save, 0, torch.tensor(pos_dims[d], device=device))
+            pos_pred = torch.index_select(preds_save, 1, torch.tensor(pos_dims[d], device=device))
             if neg_dims[d] is None:
                 pred = torch.mean(pos_pred)
             elif neg_dims[d] == 'all':
@@ -61,7 +60,6 @@ def main(model_path):
             else:
                 neg_pred = torch.index_select(preds_save, 1, torch.tensor(neg_dims[d], device=device))
                 pred = torch.mean(pos_pred) - torch.mean(neg_pred)
-            print(pred)
             mean_tensor[n, d] = pred
 
     print(mean_tensor)
