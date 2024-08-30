@@ -51,6 +51,7 @@ def main(model_path):
         preds_save = torch.stack(preds[len(preds)//2:])
         print(preds_save.mean(dim=0))
         for d in range(len(pos_dims)):
+            print(preds_save)
             pos_pred = torch.index_select(preds_save, 1, torch.tensor(pos_dims[d], device=device))
             if neg_dims[d] is None:
                 pred = torch.mean(pos_pred)
