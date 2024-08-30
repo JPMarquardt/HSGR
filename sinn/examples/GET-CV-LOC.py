@@ -60,6 +60,7 @@ def main(model_path):
             else:
                 neg_pred = torch.index_select(preds_save, 1, torch.tensor(neg_dims[d], device=device))
                 pred = pos_pred - neg_pred
+            print(pred)
             mean_tensor[n, d] = torch.mean(pred)
 
     print(mean_tensor)
