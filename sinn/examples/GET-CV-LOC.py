@@ -30,9 +30,10 @@ def main(model_path):
     dataset_names = ['CsCl.gsd', 'aggr.gsd', 'Th3P4.gsd']
     sparsity = [1000, 1000, 1000]
 
-    dims = [-7, -8]
+    pos_dims = [-7, [-8, -8, -7]]
+    neg_dims = [None, 'all']
     n_interpolation_points = 5
-    mean_tensor = torch.zeros((len(dataset_names), len(dims)))
+    mean_tensor = torch.zeros((len(dataset_names), len(pos_dims)))
 
     for n, name in enumerate(dataset_names):
         dataset = Universe(f'./test_traj/{name}')
@@ -49,8 +50,16 @@ def main(model_path):
         # Stack the predictions that are in the correct state
         preds_save = torch.stack(preds[len(preds)//2:])
         print(preds_save.mean(dim=0))
-        for d, dim in enumerate(dims):
-            pred = preds_save[:, dim]
+        for d in range(len(pos_dims)):
+            pos_pred = torch.index_select(preds_save, 1, torch.tensor(pos_dims[d]))
+            if neg_dims[d] is None:
+                pred = pos_pred
+            elif neg_dims[d] == 'all':
+                neg_pred = preds_save
+                pred = pos_pred - neg_pred
+            else:
+                neg_pred = torch.index_select(preds_save, 1, torch.tensor(neg_dims[d]))
+                pred = pos_pred - neg_pred
             mean_tensor[n, d] = torch.mean(pred)
 
     print(mean_tensor)
