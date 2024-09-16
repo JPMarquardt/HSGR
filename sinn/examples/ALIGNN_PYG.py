@@ -24,7 +24,7 @@ def main(model_path: Union[str, None] = None):
     pre_eval_func = PeriodicKNN_PyG(k = k)
     pre_eval_func = AddNoise(std=0.1, transform=pre_eval_func)
     
-    target = 'spg_number'
+    target = 'international_number'
 
     dataset = FilteredAtomsDataset(source = "dft_3d",
                             n_unique_atoms = (True,n_atoms),
