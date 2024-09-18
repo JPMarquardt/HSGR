@@ -8,8 +8,8 @@ from sinn.dataset.dataset import FilteredAtomsDataset
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 names = ['CsCl.gsd', 'Th3P4.gsd', 'aggr.gsd']
 shapes = ['o', 's', 'x']
-dates = [f'24-08-06']
-model_names = ['Alignn-k17-L4-int5-n7']
+dates = [f'2024-09-16', f'2024-09-16', f'2024-09-16', f'2024-09-18']
+model_names = [f'Alignn-k19-L3-spg22-n8', f'Alignn-k19-L4-spg22-n8', f'Alignn-k19-L4-int5-n8', f'Alignn-k19-L3-int5-n8']
 
 for i, model_name in enumerate(model_names):
     pca = PCA(n_components=2)
