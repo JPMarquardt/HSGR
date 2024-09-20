@@ -38,7 +38,7 @@ def main(model_path: Union[str, None] = None):
     print(class_weights)
 
     num_classes = class_weights.size(0)
-    num_layers = 3
+    num_layers = 2
 
     model = Alignn(num_layers = num_layers, hidden_features = 128, radial_features = 256, out_feats=num_classes, classification=True).to(device)
     model_type_name = type(model).__name__
