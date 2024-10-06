@@ -1,0 +1,25 @@
+dataset_modifications:
+  n_atoms: 2           # Number of unique atoms
+  spg_range: [195, 230]  # Space group number range (1 to 230)
+  k: 19                # Number of nearest neighbors for the KNN
+  target: 'international_number'
+
+# Model Parameters
+model_parameters:
+  model_path: "models/alignn_model.pth"
+  num_layers: 4         # Number of layers in the model
+  hidden_feats: 64      # Number of hidden features
+  radial_feats: 256     # Number of radial features
+
+# Training Parameters
+training_parameters:
+  n_epochs: 10000       # Number of training epochs
+  batch_size: 1         # Batch size
+  loss_func: "CrossEntropyLoss"  # Loss function: CrossEntropyLoss or MSELoss
+  optimizer: "Adam"     # Optimizer: Adam or AdamW
+  optimizer_params:     # Parameters for the optimizer
+    lr: 1.e-3            # Learning rate
+    weight_decay: 1.e-4  # Weight decay
+  scheduler: "ConstantLR" # Learning rate scheduler
+  scheduler_params: {}   # Parameters for the scheduler
+    
