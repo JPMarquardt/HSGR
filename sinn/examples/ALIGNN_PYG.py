@@ -49,24 +49,6 @@ def main(yaml_path: Union[str, None] = None):
 
     # Create model parameters
 
-    if 'model_path' in model_parameters:
-        model_path = model_parameters['model_path']
-
-        model_name = model_path.split('/')[-1].split('.')[0]
-        model_path = model_path.split(model_name)[0]
-    else:
-        date = datetime.now().strftime("%Y-%m-%d")
-        model_path = f'models/{date}/'
-        if not os.path.exists(model_path):
-            os.makedirs(model_path)
-
-        if 'model_num' in model_parameters:
-            model_num = model_parameters['model_num']
-        else:
-            model_num = 0
-
-        model_name = f'{model_type_name}-k{k}-L{num_layers}-{target[:3]}{num_classes}-n{model_num}'
-
     if 'num_layers' in model_parameters:
         num_layers = model_parameters['num_layers']
     else:
@@ -99,6 +81,26 @@ def main(yaml_path: Union[str, None] = None):
 
     model = Alignn(num_layers = num_layers, hidden_feats = hidden_feats, radial_feats = radial_feats, out_feats=num_classes, classification=True).to(device)
     model_type_name = type(model).__name__
+
+    # Create model path
+
+    if 'model_path' in model_parameters:
+        model_path = model_parameters['model_path']
+
+        model_name = model_path.split('/')[-1].split('.')[0]
+        model_path = model_path.split(model_name)[0]
+    else:
+        date = datetime.now().strftime("%Y-%m-%d")
+        model_path = f'models/{date}/'
+        if not os.path.exists(model_path):
+            os.makedirs(model_path)
+
+        if 'model_num' in model_parameters:
+            model_num = model_parameters['model_num']
+        else:
+            model_num = 0
+
+        model_name = f'{model_type_name}-k{k}-L{num_layers}-{target[:3]}{num_classes}-n{model_num}'
 
     # Create training parameters
 
