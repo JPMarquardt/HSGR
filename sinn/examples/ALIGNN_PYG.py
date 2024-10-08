@@ -60,7 +60,11 @@ def main(yaml_path: Union[str, None] = None):
         if not os.path.exists(model_path):
             os.makedirs(model_path)
 
-        model_num = 0
+        if 'model_num' in model_parameters:
+            model_num = model_parameters['model_num']
+        else:
+            model_num = 0
+
         model_name = f'{model_type_name}-k{k}-L{num_layers}-{target[:3]}{num_classes}-n{model_num}'
 
     if 'num_layers' in model_parameters:
