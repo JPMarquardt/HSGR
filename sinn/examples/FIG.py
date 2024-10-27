@@ -44,6 +44,11 @@ def main(paths):
         'Th3P4.gsd': 's',
         'aggr.gsd': 'x'
     }
+    target_label_map = {
+        'CsCl.gsd': 'CsCl',
+        'Th3P4.gsd': 'Th3P4',
+        'aggr.gsd': 'Aggregate'
+    }
 
     new_paths = []
     for path in paths:
@@ -75,6 +80,10 @@ def main(paths):
                 data.data = pca.fit_transform(data.data)
 
                 data.set_pca(pca)
+
+            else:
+                ax.set_xlabel('43m Character')
+                ax.set_ylabel('m3m Character')
         else:
             fig = plotted[data.idenfier].figure
             ax = fig.get_axes()[0]
@@ -83,10 +92,10 @@ def main(paths):
                 data.data = plotted[data.idenfier].pca.transform(data.data)
 
         colors = torch.linspace(0,1,data.data.shape[0])
-        ax.scatter(data.data[:,0], data.data[:,-1], label=data.target, marker=target_shape_map[data.target], c=colors, alpha=0.5, cmap='viridis')
-        fig.legend()
+        ax.scatter(data.data[:,0], data.data[:,-1], label=target_label_map[data.target], marker=target_shape_map[data.target], c=colors, alpha=0.5, cmap='viridis')
 
     for data in plotted.values():
+        data.figure.legend(prop={'size': 20})
         data.figure.savefig(f'models/{data.date}/{data.model}-{data.data_type}-scatter.png')
 
 
