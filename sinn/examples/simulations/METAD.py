@@ -179,7 +179,7 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     types_ml = np.array(types_ml, dtype=np.int32)
     
     bias_factor = bias['bias_factor']
-    scale_factor = bias['scale_factor']
+    height_factor = bias['height_factor']
     minmax = bias['minmax']
     model_name = bias['model_name']
 
@@ -201,7 +201,7 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     path = pathlib.Path(__file__).parent
 
     meta = app.metadynamics.Metadynamics(system, [bv0, bv1], parameters.temperature,
-                                         biasFactor=bias_factor, height=scale_factor*unit.kilojoules_per_mole, frequency=100,
+                                         biasFactor=bias_factor, height=height_factor*unit.kilojoules_per_mole, frequency=100,
                                          saveFrequency=100, biasDir=f'{path}../biases')
     app.metadynamics.Metadynamics()
     
