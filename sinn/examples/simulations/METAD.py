@@ -182,6 +182,7 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     height_factor = bias['height_factor']
     minmax = bias['minmax']
     model_name = bias['model_name']
+    frequency = bias['frequency']
 
     cv0module = torch.jit.script(CVModule(f'{model_name}-combiner0.pkl', types_ml))
     cv1module = torch.jit.script(CVModule(f'{model_name}-combiner1.pkl', types_ml))
@@ -201,7 +202,7 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     path = pathlib.Path(__file__).parent
 
     meta = app.metadynamics.Metadynamics(system, [bv0, bv1], parameters.temperature,
-                                         biasFactor=bias_factor, height=height_factor*unit.kilojoules_per_mole, frequency=100,
+                                         biasFactor=bias_factor, height=height_factor*unit.kilojoules_per_mole, frequency=frequency,
                                          saveFrequency=100, biasDir=f'{path}../biases')
     app.metadynamics.Metadynamics()
     
