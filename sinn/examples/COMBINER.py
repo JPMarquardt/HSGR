@@ -17,7 +17,7 @@ def main(model_path):
         model_path = model_path.split(model_name)[0]
         print(date, model_name, model_path)
 
-    if model_path.endswith('/'):
+    elif model_path.endswith('/'):
         files = os.listdir(model_path)
         files = [f for f in files if f.endswith('.pkl')]
 
