@@ -9,9 +9,15 @@ from sinn.train.transforms_pyg import AperiodicKNN_PyG
 
 
 def main(model_path):
-    model_name = model_path.split('/')[-1].split('.')[0]
-    model_path = model_path.split(model_name)[0]
-    date = model_path.split('/')[-2]
+    if model_path.endswith('.pkl'):
+        date = model_path.split('/')[-2]
+        model_name = model_path.split('/')[-1].split('.')[0]
+        model_path = model_path.split(model_name)[0]
+
+    if model_path.endswith('/'):
+        date = model_path.split('/')[-3]
+        model_name = model_path.split('/')[-1]
+        model_path = model_path.split('/')[-2]
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
