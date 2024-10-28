@@ -211,7 +211,6 @@ def create_aperiodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     Create a periodic k-nearest neighbor graph
     """
     device = str(a['positions'].device)
-    print(device)
 
     # get the stuff
     data = a['positions']
