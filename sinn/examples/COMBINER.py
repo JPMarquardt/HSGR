@@ -42,6 +42,10 @@ def main(model_path):
         #model = Model_Combiner(pre_eval_func=pre_eval_func, model=base_model, pca=pca_model[i].unsqueeze(0))
         model = ModelCombiner(pre_eval_func=pre_eval_func, model=base_model, index=indices[i])
         model.eval()
+
+        if not os.path.exists(f'simulations/{date}'):
+            pathlib.Path(f'simulations/{date}').mkdir(parents=True, exist_ok=True)
+            
         torch.save(model, f'simulations/{date}/{model_name}-combiner{i}.pkl')
 
 if __name__ == '__main__':
