@@ -266,6 +266,7 @@ def main():
 
     set_up_reporters(parameters, simulation, False, parameters.run_steps)
 
+    print("Running simulation...")
     meta.step(simulation, parameters.run_steps)
     # TODO: Automatically plot energies etc.
     # TODO: CHECK ALL SURFACE SEPARATIONS
