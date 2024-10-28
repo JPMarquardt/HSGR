@@ -24,6 +24,7 @@ def main(model_path):
         for f in files:
             full_path = f'{model_path}{f}'
             main(full_path)
+        return
 
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
