@@ -203,7 +203,7 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
 
     meta = app.metadynamics.Metadynamics(system, [bv0, bv1], parameters.temperature,
                                          biasFactor=bias_factor, height=height_factor*unit.kilojoules_per_mole, frequency=frequency,
-                                         saveFrequency=100, biasDir=f'{path}../biases')
+                                         saveFrequency=100, biasDir=f'{path}/../biases')
     app.metadynamics.Metadynamics()
     
     if parameters.platform_name == "CUDA" or parameters.platform_name == "OpenCL":
