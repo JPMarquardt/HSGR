@@ -248,7 +248,7 @@ def main():
 
     types, positions, cell = read_xyz_file(parameters.initial_configuration)
     
-    simulation = set_up_simulation(parameters, types, cell, bias)
+    simulation, meta = set_up_simulation(parameters, types, cell, bias)
     
     simulation.context.setPositions(positions)
     if parameters.velocity_seed is not None:
