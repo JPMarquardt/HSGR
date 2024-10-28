@@ -32,7 +32,7 @@ def main(model_path):
         #model = Model_Combiner(pre_eval_func=pre_eval_func, model=base_model, pca=pca_model[i].unsqueeze(0))
         model = ModelCombiner(pre_eval_func=pre_eval_func, model=base_model, index=indices[i])
         model.eval()
-        torch.save(model, f'simulations/{date}/{model_name}-combiner{i}.pkl')
+        torch.save(model, f'models/{date}/{model_name}-combiner{i}.pkl')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create a directory for umbrella sampling of a model')
