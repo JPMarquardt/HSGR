@@ -30,6 +30,7 @@ def main(model_path):
     dataset_names = ['CsCl.gsd', 'aggr.gsd', 'Th3P4.gsd']
     sparsity = [1000, 1000, 1000]
 
+
     pos_dims = [15, 14]
     neg_dims = [None, None]
     n_interpolation_points = 5

@@ -42,7 +42,6 @@ class CVModule(torch.nn.Module):
         self.ptypes = torch.tensor(ptypes, dtype=torch.long, device=self.device)
 
         self.mlp.eval()
-        print(self.ptypes.device)
 
     def forward(self, positions):
         datapoint = {'positions': positions, 'numbers': self.ptypes}
