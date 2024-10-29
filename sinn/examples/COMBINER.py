@@ -12,6 +12,7 @@ from sinn.train.transforms_pyg import AperiodicKNN_PyG, PeriodicKNN_PyG
 
 def main(args):
     model_path = args['model_path']
+    boundary = args['boundary']
 
     if model_path.endswith('.pkl'):
         date = model_path.split('/')[-2]
@@ -19,10 +20,10 @@ def main(args):
         model_path = model_path.split(model_name)[0]
         print(model_path)
 
-    elif args.model_path.endswith('/'):
+    elif model_path.endswith('/'):
         files = os.listdir(model_path)
         files = [f for f in files if f.endswith('.pkl')]
-        args_lsit = [{'model_path': f'{model_path}{f}', 'boundary': args.boundary} for f in files]
+        args_lsit = [{'model_path': f'{model_path}{f}', 'boundary': boundary} for f in files]
 
         for arg in args_lsit:
             main(arg)
@@ -35,7 +36,7 @@ def main(args):
 
     k = int(model_name.split('-')[1].split('k')[1])
 
-    if args['boundary'] == 'periodic':
+    if boundary == 'periodic':
         pre_eval_func = PeriodicKNN_PyG(k = k)
         periodic = 'p'
     else:
