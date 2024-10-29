@@ -36,8 +36,10 @@ def main(args):
 
     if args.boundary == 'periodic':
         pre_eval_func = PeriodicKNN_PyG(k = k)
+        periodic = 'p'
     else:
         pre_eval_func = AperiodicKNN_PyG(k = k)
+        periodic = 'a'
 
     if model_name.split('-')[-2][:3] == 'int':
         indices = [-1, -5]
@@ -52,7 +54,7 @@ def main(args):
         if not os.path.exists(f'simulations/{date}'):
             pathlib.Path(f'simulations/{date}').mkdir(parents=True, exist_ok=True)
             
-        torch.save(model, f'simulations/{date}/{model_name}-combiner{i}.pkl')
+        torch.save(model, f'simulations/{date}/{model_name}-combiner{periodic}{i}.pkl')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create a directory for umbrella sampling of a model')
