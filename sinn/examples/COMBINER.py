@@ -11,10 +11,7 @@ from sinn.train.transforms_pyg import AperiodicKNN_PyG, PeriodicKNN_PyG
 
 
 def main(args):
-    if isinstance(args, str):
-        model_path = args
-    elif isinstance(args, argparse.Namespace):
-        model_path = args.model_path
+    model_path = args.model_path
 
     if model_path.endswith('.pkl'):
         date = model_path.split('/')[-2]
@@ -25,6 +22,7 @@ def main(args):
     elif args.model_path.endswith('/'):
         files = os.listdir(model_path)
         files = [f for f in files if f.endswith('.pkl')]
+        args = argparse.Namespace(model_path=model_path, boundary=args.boundary)
 
         for f in files:
             full_path = f'{model_path}{f}'
