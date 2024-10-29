@@ -22,11 +22,10 @@ def main(args):
     elif args.model_path.endswith('/'):
         files = os.listdir(model_path)
         files = [f for f in files if f.endswith('.pkl')]
-        args = argparse.Namespace(model_path=model_path, boundary=args.boundary)
+        args_lsit = [{'model_path': f'{model_path}{f}', 'boundary': args.boundary} for f in files]
 
-        for f in files:
-            full_path = f'{model_path}{f}'
-            main(full_path)
+        for arg in args_lsit:
+            main(arg)
         return
 
 
