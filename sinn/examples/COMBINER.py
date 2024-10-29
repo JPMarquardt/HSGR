@@ -7,10 +7,12 @@ import pathlib
 
 from sinn.model.combiner import ModelCombiner
 from sinn.model.alignn_pyg import Alignn
-from sinn.train.transforms_pyg import AperiodicKNN_PyG
+from sinn.train.transforms_pyg import AperiodicKNN_PyG, PeriodicKNN_PyG
 
 
-def main(model_path):
+def main(args):
+    model_path = args.model_path
+
     if model_path.endswith('.pkl'):
         date = model_path.split('/')[-2]
         model_name = model_path.split('/')[-1].split('.')[0]
@@ -31,7 +33,11 @@ def main(model_path):
     base_model = torch.load(f'{model_path}{model_name}.pkl', map_location=device)
 
     k = int(model_name.split('-')[1].split('k')[1])
-    pre_eval_func = AperiodicKNN_PyG(k = k)
+
+    if args.boundary == 'periodic':
+        pre_eval_func = PeriodicKNN_PyG(k = k)
+    else:
+        pre_eval_func = AperiodicKNN_PyG(k = k)
 
     if model_name.split('-')[-2][:3] == 'int':
         indices = [-1, -5]
@@ -51,6 +57,7 @@ def main(model_path):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Create a directory for umbrella sampling of a model')
     parser.add_argument('model_path', type=str, help='Path to the model file')
+    parser.add_argument('--boundary', type=str, default='periodic', help='Boundary conditions for the model')
     args = parser.parse_args()
 
-    main(args.model_path)
+    main(args)
