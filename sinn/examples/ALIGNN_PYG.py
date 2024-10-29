@@ -42,7 +42,11 @@ def main(yaml_path: Union[str, None] = None):
         k = dataset_modifications['k']
 
         pre_eval_func = PeriodicKNN_PyG(k = k)
-        pre_eval_func = AddNoise(std=0.1, transform=pre_eval_func)
+
+    if 'noise' in dataset_modifications:
+        noise = dataset_modifications['noise']
+        pre_eval_func = AddNoise(std=noise, transform=pre_eval_func)
+        
     
     if 'target' in dataset_modifications:
         target = dataset_modifications['target']
