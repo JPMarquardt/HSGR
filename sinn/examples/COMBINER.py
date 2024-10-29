@@ -63,4 +63,4 @@ if __name__ == '__main__':
     parser.add_argument('--boundary', type=str, default='periodic', help='Boundary conditions for the model')
     args = parser.parse_args()
 
-    main(args)
+    main(vars(args))
