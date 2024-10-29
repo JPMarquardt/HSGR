@@ -11,7 +11,7 @@ from sinn.train.transforms_pyg import AperiodicKNN_PyG, PeriodicKNN_PyG
 
 
 def main(args):
-    model_path = args.model_path
+    model_path = args['model_path']
 
     if model_path.endswith('.pkl'):
         date = model_path.split('/')[-2]
@@ -35,7 +35,7 @@ def main(args):
 
     k = int(model_name.split('-')[1].split('k')[1])
 
-    if args.boundary == 'periodic':
+    if args['boundary'] == 'periodic':
         pre_eval_func = PeriodicKNN_PyG(k = k)
         periodic = 'p'
     else:
