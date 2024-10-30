@@ -48,6 +48,7 @@ class CVModule(torch.nn.Module):
         positions = positions.to(self.device)
         positions = positions.float()
         datapoint = {'positions': positions, 'numbers': self.ptypes, 'cell': self.cell}
+        print('test')
         out = torch.mean(self.mlp(datapoint))
 
         return out
