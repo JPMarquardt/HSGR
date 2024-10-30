@@ -59,7 +59,7 @@ def box_filter(data: torch.Tensor, dx: float, lattice: torch.Tensor):
 
     return full_filter
 
-def create_labeled_supercell(data: torch.Tensor, n: int, lattice: torch.Tensor = None):
+def create_labeled_supercell(data: torch.Tensor, n: int, lattice: torch.Tensor = None) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Create a supercell
     """
