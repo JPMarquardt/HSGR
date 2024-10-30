@@ -31,7 +31,7 @@ class ExampleAction(argparse.Action):
         parser.exit()
 
 class CVModule(torch.nn.Module):
-    def __init__(self, mlp_name, ptypes, cell=None):
+    def __init__(self, mlp_name, ptypes, cell):
         super().__init__()
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
@@ -40,11 +40,7 @@ class CVModule(torch.nn.Module):
 
         self.mlp = torch.load(mlp_name, map_location=self.device)
         self.ptypes = torch.tensor(ptypes, dtype=torch.long, device=self.device)
-        
-        if cell is not None:
-            self.cell = torch.tensor(cell, dtype=torch.float32, device=self.device)
-        else:
-            self.cell = cell
+        self.cell = torch.tensor(cell, dtype=torch.float32, device=self.device)
 
         self.mlp.eval()
 
