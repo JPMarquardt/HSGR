@@ -15,7 +15,7 @@ class PeriodicKNN_PyG(nn.Module):
         super(PeriodicKNN_PyG, self).__init__()
         self.k = k
 
-    def forward(self, datapoint) -> Graph:
+    def forward(self, datapoint: dict[str, torch.Tensor]) -> Graph:
         return create_periodic_knn_graph(datapoint, self.k)
 
 class AperiodicKNN_PyG(nn.Module):
