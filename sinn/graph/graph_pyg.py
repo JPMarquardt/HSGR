@@ -3,7 +3,7 @@ from math import ceil
 from typing import Union
 
 class Graph():
-    def __init__(self, dictionary: dict[str, torch.Tensor], nodes: torch.Tensor, edges: int, device: str = 'cpu'):
+    def __init__(self, dictionary: dict[str, torch.Tensor], nodes: int, edges: int, device: str = 'cpu'):
         self.dictionary = dictionary
         self.n_nodes = nodes
         self.k = edges
@@ -119,7 +119,7 @@ def aperiodic_knn_graph_from_supercell(data: torch.Tensor, k: int):
     # KNN graph: dx, r, knn, n_nodes
     g = {'dx': knn_dx, 'r': knn_normalized, 'knn': indices}
     
-    return Graph(g, torch.tensor([n_nodes]), k-1)
+    return Graph(g, n_nodes, k-1)
 
 def periodic_graph_from_labeled_supercell(g: Graph, center: int = 1):
     """
@@ -132,7 +132,7 @@ def periodic_graph_from_labeled_supercell(g: Graph, center: int = 1):
 
     # some useful constants of the graph
     total_nodes = g.n_nodes
-    g.n_nodes = in_center.sum()
+    g.n_nodes = in_center.sum().item()
     reduced_nodes = g.n_nodes
     
     # filter the graph to only include the in-center atoms
