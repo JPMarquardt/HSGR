@@ -196,15 +196,12 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     else:
         periodic = 'p'
 
-    print('here')
     cv0module = torch.jit.script(CVModule(f'{model_name}-combiner{periodic}0.pkl', types_ml, cell))
     cv1module = torch.jit.script(CVModule(f'{model_name}-combiner{periodic}1.pkl', types_ml, cell))
     cv0 = TorchForce(cv0module)
     cv1 = TorchForce(cv1module)
     # cv0.setUsesPeriodicBoundaryConditions(True)
     # cv1.setUsesPeriodicBoundaryConditions(True)
-    print('here')
-
     
     cvforce0 = openmm.CustomCVForce('cv0')
     cvforce0.addCollectiveVariable('cv0', cv0)
