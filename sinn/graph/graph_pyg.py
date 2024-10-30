@@ -3,7 +3,7 @@ from math import ceil
 from typing import Union
 
 class Graph():
-    def __init__(self, dictionary: dict[str, torch.Tensor], nodes: int, edges: int, device: str = 'cpu'):
+    def __init__(self, dictionary: dict[str, torch.Tensor], nodes: Union[int, torch.Tensor], edges: int, device: str = 'cpu'):
         self.dictionary = dictionary
         self.n_nodes = nodes
         self.k = edges
@@ -132,7 +132,7 @@ def periodic_graph_from_labeled_supercell(g: Graph, center: int = 1):
 
     # some useful constants of the graph
     total_nodes = g.n_nodes
-    g.n_nodes = in_center.sum()[0]
+    g.n_nodes = in_center.sum()
     reduced_nodes = g.n_nodes
     
     # filter the graph to only include the in-center atoms
