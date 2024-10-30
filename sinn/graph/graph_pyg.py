@@ -175,7 +175,7 @@ def create_periodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9):
     
     # create the supercell
     supercell, atom_id, cell_id = create_labeled_supercell(data, n=replicates, lattice=lattice)
-    atomic_numbers = atomic_numbers.repeat(replicates**3)
+    atomic_numbers = atomic_numbers.repeat([int(replicates**3)])
 
     # filter the supercell if we need to
     if dx < 0.5:
