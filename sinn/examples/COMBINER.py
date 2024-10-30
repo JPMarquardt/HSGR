@@ -18,7 +18,7 @@ def main(args):
         date = model_path.split('/')[-2]
         model_name = model_path.split('/')[-1].split('.')[0]
         model_path = model_path.split(model_name)[0]
-        print(model_path)
+        print(model_name)
 
     elif model_path.endswith('/'):
         files = os.listdir(model_path)

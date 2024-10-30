@@ -31,7 +31,7 @@ class ExampleAction(argparse.Action):
         parser.exit()
 
 class CVModule(torch.nn.Module):
-    def __init__(self, mlp_name, ptypes):
+    def __init__(self, mlp_name, ptypes, cell=None):
         super().__init__()
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
@@ -40,13 +40,18 @@ class CVModule(torch.nn.Module):
 
         self.mlp = torch.load(mlp_name, map_location=self.device)
         self.ptypes = torch.tensor(ptypes, dtype=torch.long, device=self.device)
+        
+        if cell is not None:
+            self.cell = torch.tensor(cell, dtype=torch.float32, device=self.device)
+        else:
+            self.cell = cell
 
         self.mlp.eval()
 
     def forward(self, positions):
         positions = positions.to(self.device)
         positions = positions.float()
-        datapoint = {'positions': positions, 'numbers': self.ptypes}
+        datapoint = {'positions': positions, 'numbers': self.ptypes, 'cell': self.cell}
         out = torch.mean(self.mlp(datapoint))
 
         return out
@@ -190,8 +195,13 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     model_name = bias['model_name']
     frequency = bias['frequency']
 
-    cv0module = torch.jit.script(CVModule(f'{model_name}-combiner0.pkl', types_ml))
-    cv1module = torch.jit.script(CVModule(f'{model_name}-combiner1.pkl', types_ml))
+    if include_walls:
+        periodic = 'a'
+    else:
+        periodic = 'p'
+
+    cv0module = torch.jit.script(CVModule(f'{model_name}-combiner{periodic}0.pkl', types_ml, cell))
+    cv1module = torch.jit.script(CVModule(f'{model_name}-combiner{periodic}1.pkl', types_ml, cell))
     cv0 = TorchForce(cv0module)
     cv1 = TorchForce(cv1module)
     # cv0.setUsesPeriodicBoundaryConditions(True)
