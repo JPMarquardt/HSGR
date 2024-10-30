@@ -78,8 +78,8 @@ def create_labeled_supercell(data: torch.Tensor, n: int, lattice: torch.Tensor =
     norm_props = torch.ceil(lattice_vector_norm_prop * n).int()
 
     # create the atom ids
-    atom_id = torch.arange(n_atoms, dtype=torch.float, device=device)
-    atom_id = atom_id.repeat(n**3).int()
+    atom_id: torch.IntTensor = torch.arange(n_atoms, dtype=torch.int, device=device)
+    atom_id: torch.IntTensor = atom_id.repeat(n**3)
 
     # create the cell ids
     cell_id_1 = torch.arange(n, dtype=torch.int, device=device).repeat_interleave(n_atoms * n**2)
