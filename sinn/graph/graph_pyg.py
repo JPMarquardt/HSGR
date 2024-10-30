@@ -79,16 +79,16 @@ def create_labeled_supercell(data: torch.Tensor, n: int, lattice: torch.Tensor =
 
     # create the atom ids
     atom_id = torch.arange(n_atoms, dtype=torch.int, device=device)
-    atom_id = atom_id.repeat(repeats=[int(n**3)])
+    atom_id = atom_id.repeat(repeats=int(n**3))
 
     # create the cell ids
-    cell_id_1 = torch.arange(n, dtype=torch.int, device=device).repeat_interleave(n_atoms * n**2)
-    cell_id_2 = torch.arange(n, dtype=torch.int, device=device).repeat_interleave(n_atoms * n).repeat(n)
-    cell_id_3 = torch.arange(n, dtype=torch.int, device=device).repeat_interleave(n_atoms).repeat(n**2)
+    cell_id_1 = torch.arange(n, dtype=torch.int, device=device).repeat_interleave(int(n_atoms * n**2))
+    cell_id_2 = torch.arange(n, dtype=torch.int, device=device).repeat_interleave(int(n_atoms * n)).repeat(int(n))
+    cell_id_3 = torch.arange(n, dtype=torch.int, device=device).repeat_interleave(int(n_atoms)).repeat(int(n**2))
     cell_id = torch.stack((cell_id_1, cell_id_2, cell_id_3), dim=1)
 
     # create the supercell
-    supercell = data.repeat(n**3, 1) + cell_id.float() @ lattice
+    supercell = data.repeat(int(n**3), 1) + cell_id.float() @ lattice
 
     return supercell, atom_id, cell_id
 
