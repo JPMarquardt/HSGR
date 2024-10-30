@@ -126,7 +126,8 @@ def periodic_graph_from_labeled_supercell(g: Graph, center: int = 1):
     Create a periodic graph from a supercell and add the necessary edge features
     """
     # get which atoms are in the center
-    in_center = torch.all(torch.eq(g.pop('cell_id'), center), dim=1).bool()
+    in_center = torch.all(torch.eq(g.pop('cell_id'), center), dim=1)
+    in_center = in_center.to(torch.bool)
     in_center_ids = torch.nonzero(in_center).squeeze()
 
     # some useful constants of the graph
