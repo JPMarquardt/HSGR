@@ -3,7 +3,7 @@ from math import ceil
 from typing import Union
 
 class Graph():
-    def __init__(self, dictionary: dict[str, torch.Tensor], nodes: Union[int, torch.Tensor], edges: int, device: str = 'cpu'):
+    def __init__(self, dictionary: dict[str, torch.Tensor], nodes: torch.Tensor, edges: int, device: str = 'cpu'):
         self.dictionary = dictionary
         self.n_nodes = nodes
         self.k = edges
