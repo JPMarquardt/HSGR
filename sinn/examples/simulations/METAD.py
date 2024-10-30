@@ -198,7 +198,6 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
 
     print('here')
     cv0module = torch.jit.script(CVModule(f'{model_name}-combiner{periodic}0.pkl', types_ml, cell))
-    print('here')
     cv1module = torch.jit.script(CVModule(f'{model_name}-combiner{periodic}1.pkl', types_ml, cell))
     cv0 = TorchForce(cv0module)
     cv1 = TorchForce(cv1module)
@@ -214,6 +213,7 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     bv1 = app.metadynamics.BiasVariable(cvforce1, minmax[1][0], minmax[1][1], (minmax[1][1] - minmax[1][0]) / 40)
 
     path = pathlib.Path(__file__).parent
+    print('here')
 
     meta = app.metadynamics.Metadynamics(system, [bv0, bv1], parameters.temperature,
                                          biasFactor=bias_factor, height=height_factor*unit.kilojoules_per_mole, frequency=frequency,
