@@ -203,6 +203,8 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     cv1 = TorchForce(cv1module)
     # cv0.setUsesPeriodicBoundaryConditions(True)
     # cv1.setUsesPeriodicBoundaryConditions(True)
+    print('here')
+
     
     cvforce0 = openmm.CustomCVForce('cv0')
     cvforce0.addCollectiveVariable('cv0', cv0)
@@ -213,7 +215,6 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     bv1 = app.metadynamics.BiasVariable(cvforce1, minmax[1][0], minmax[1][1], (minmax[1][1] - minmax[1][0]) / 40)
 
     path = pathlib.Path(__file__).parent
-    print('here')
 
     meta = app.metadynamics.Metadynamics(system, [bv0, bv1], parameters.temperature,
                                          biasFactor=bias_factor, height=height_factor*unit.kilojoules_per_mole, frequency=frequency,
