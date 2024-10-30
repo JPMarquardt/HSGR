@@ -196,7 +196,9 @@ def set_up_simulation(parameters: RunParameters, types: npt.NDArray[str],
     else:
         periodic = 'p'
 
+    print('here')
     cv0module = torch.jit.script(CVModule(f'{model_name}-combiner{periodic}0.pkl', types_ml, cell))
+    print('here')
     cv1module = torch.jit.script(CVModule(f'{model_name}-combiner{periodic}1.pkl', types_ml, cell))
     cv0 = TorchForce(cv0module)
     cv1 = TorchForce(cv1module)
