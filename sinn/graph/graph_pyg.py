@@ -119,7 +119,7 @@ def aperiodic_knn_graph_from_supercell(data: torch.Tensor, k: int):
     # KNN graph: dx, r, knn, n_nodes
     g = {'dx': knn_dx, 'r': knn_normalized, 'knn': indices}
     
-    return Graph(g, n_nodes, k-1)
+    return Graph(g, torch.tensor([n_nodes]), k-1)
 
 def periodic_graph_from_labeled_supercell(g: Graph, center: int = 1):
     """
