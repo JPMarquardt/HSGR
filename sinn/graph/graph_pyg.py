@@ -132,7 +132,7 @@ def periodic_graph_from_labeled_supercell(g: Graph, center: int = 1):
 
     # some useful constants of the graph
     total_nodes = g.n_nodes
-    g.n_nodes = in_center.sum()
+    g.n_nodes = in_center.sum()[0]
     reduced_nodes = g.n_nodes
     
     # filter the graph to only include the in-center atoms
