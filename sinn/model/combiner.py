@@ -11,14 +11,13 @@ class ModelCombiner(nn.Module):
         super(ModelCombiner, self).__init__()
         self.pre_eval_func = pre_eval_func
         self.model = model
-        self.output = torch.Tensor()
         self.index = index
 
     def forward(self, x: dict[str, torch.Tensor]) -> torch.Tensor:       
         x = self.pre_eval_func(x)
-        self.output = self.model(x, early_return=True)
+        output = self.model(x, early_return=True)
 
-        return self.output[:, self.index]
+        return output[:, self.index]
 
 class ModelCombinerPCA(nn.Module):
     def __init__(self, pre_eval_func: Callable, model: nn.Module, pca: torch.Tensor):
