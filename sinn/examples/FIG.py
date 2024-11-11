@@ -40,14 +40,14 @@ class DataPlotter():
 
 def main(paths):
     target_shape_map = {
-        'CsCl.gsd': 'o',
-        'Th3P4.gsd': 's',
-        'aggr.gsd': 'x'
+        'CsCl': 'o',
+        'Th3P4': 's',
+        'aggr': 'x'
     }
     target_label_map = {
-        'CsCl.gsd': 'CsCl',
-        'Th3P4.gsd': 'Th3P4',
-        'aggr.gsd': 'Aggregate'
+        'CsCl': 'CsCl',
+        'Th3P4': 'Th3P4',
+        'aggr': 'Aggregate'
     }
 
     new_paths = []
