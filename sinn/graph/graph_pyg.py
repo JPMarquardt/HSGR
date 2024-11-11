@@ -161,12 +161,10 @@ def create_periodic_knn_graph(a: dict[str, torch.Tensor], k: int = 9) -> Graph:
     """
     Create a periodic k-nearest neighbor graph
     """
-    device = a['positions'].device
-
     # get the stuff
-    data = a['positions']
-    lattice = a['cell']
-    atomic_numbers = a['numbers']
+    data = a['positions'] # n_atoms x 3
+    lattice = a['cell'] # 3 x 3
+    atomic_numbers = a['numbers'] # n_atoms
 
     # math to get the number of replicates and if we need to filter cuz the box has a lot of atoms
     n_atoms = data.shape[0]
